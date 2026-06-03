@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 
-const PRICE_MAP: Record<string, string | undefined> = {
-  ARTIST_MONTHLY: process.env.STRIPE_PRICE_ARTIST_MONTHLY,
-  ARTIST_ANNUAL: process.env.STRIPE_PRICE_ARTIST_ANNUAL,
-  PRO_MONTHLY: process.env.STRIPE_PRICE_PRO_MONTHLY,
-  PRO_ANNUAL: process.env.STRIPE_PRICE_PRO_ANNUAL,
+const PRICE_KEYS: Record<string, string> = {
+  ARTIST_MONTHLY: 'STRIPE_PRICE_ARTIST_MONTHLY',
+  ARTIST_ANNUAL: 'STRIPE_PRICE_ARTIST_ANNUAL',
+  PRO_MONTHLY: 'STRIPE_PRICE_PRO_MONTHLY',
+  PRO_ANNUAL: 'STRIPE_PRICE_PRO_ANNUAL',
 }
 
 export async function POST(request: Request) {
@@ -15,10 +15,12 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { priceKey } = await request.json()
-  const priceId = PRICE_MAP[priceKey]
+  const envKey = PRICE_KEYS[priceKey]
+  const priceId = envKey ? process.env[envKey] : undefined
   if (!priceId) return NextResponse.json({ error: 'Invalid price' }, { status: 400 })
 
   const { data: profile } = await supabase.from('profiles').select('stripe_customer_id, artist_name').eq('id', user.id).single()
+  const stripe = getStripe()
 
   let customerId = profile?.stripe_customer_id
   if (!customerId) {
