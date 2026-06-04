@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { getFreshToken } from '@/lib/spotify'
 
 interface SpotifyAlbum {
   name: string
@@ -12,6 +11,32 @@ interface SpotifyAlbum {
 interface SpotifyAlbumsPage {
   items: SpotifyAlbum[]
   next: string | null
+}
+
+// Module-level token cache — lives for the lifetime of the serverless instance
+let cachedToken: { token: string; expiresAt: number } | null = null
+
+async function getAppToken(): Promise<string | null> {
+  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
+    return cachedToken.token
+  }
+
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${Buffer.from(
+        `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+      ).toString('base64')}`,
+    },
+    body: new URLSearchParams({ grant_type: 'client_credentials' }),
+  })
+
+  if (!res.ok) return null
+
+  const { access_token, expires_in } = await res.json()
+  cachedToken = { token: access_token, expiresAt: Date.now() + expires_in * 1000 }
+  return access_token
 }
 
 export async function GET() {
@@ -30,12 +55,11 @@ export async function GET() {
     return NextResponse.json({ error: 'no_artist_id' }, { status: 400 })
   }
 
-  const accessToken = await getFreshToken(supabase, user.id)
+  const accessToken = await getAppToken()
   if (!accessToken) {
-    return NextResponse.json({ error: 'spotify_not_connected' }, { status: 400 })
+    return NextResponse.json({ error: 'spotify_unavailable' }, { status: 503 })
   }
 
-  // Fetch full catalog, paginating through all pages
   let albums: SpotifyAlbum[] = []
   let url: string | null =
     `https://api.spotify.com/v1/artists/${profile.artist_id}/albums` +
@@ -66,13 +90,8 @@ export async function GET() {
   )
 
   const latest = albums[0]
-  const latest_drop = {
-    name: latest.name,
-    date: latest.release_date,
-    type: latest.album_type,
-  }
+  const latest_drop = { name: latest.name, date: latest.release_date, type: latest.album_type }
 
-  // Avg weeks between the last 5 releases
   let release_pace: number | null = null
   const last5 = albums.slice(0, Math.min(5, albums.length))
   if (last5.length >= 2) {

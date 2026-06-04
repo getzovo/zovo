@@ -262,34 +262,7 @@ function Step2({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
   );
 }
 
-// ── Step 3 — Connect Spotify account ─────────────────────────────────────────
-
-function Step3({ onSkip }: { onSkip: () => void }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div>
-        <h1 style={heading}>Connect your Spotify account.</h1>
-        <p style={subtext}>
-          We&apos;ll use this to show your recently played tracks and catalog activity.
-        </p>
-      </div>
-      <a
-        href="/api/spotify/login"
-        style={{
-          ...btnOutlined,
-          display: 'block',
-          textAlign: 'center',
-          textDecoration: 'none',
-        }}
-      >
-        Connect Spotify
-      </a>
-      <button onClick={onSkip} style={skipLink}>Skip for now</button>
-    </div>
-  );
-}
-
-// ── Step 4 — Choose your plan ─────────────────────────────────────────────────
+// ── Step 3 — Choose your plan ─────────────────────────────────────────────────
 
 function PlanCard({
   name,
@@ -389,7 +362,7 @@ function PlanCard({
   );
 }
 
-function Step4({ onFree, onPaid }: { onFree: () => void; onPaid: (priceId: string) => void }) {
+function Step3({ onFree, onPaid }: { onFree: () => void; onPaid: (priceId: string) => void }) {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   function handleFree() {
@@ -454,9 +427,9 @@ function Step4({ onFree, onPaid }: { onFree: () => void; onPaid: (priceId: strin
   );
 }
 
-// ── Step 5 — All set ──────────────────────────────────────────────────────────
+// ── Step 4 — All set ──────────────────────────────────────────────────────────
 
-function Step5({ artistName, onDone }: { artistName: string; onDone: () => void }) {
+function Step4({ artistName, onDone }: { artistName: string; onDone: () => void }) {
   const [loading, setLoading] = useState(false);
 
   function handleDone() {
@@ -497,11 +470,11 @@ function OnboardingFlow() {
   // Honour ?step= from Stripe redirect
   useEffect(() => {
     const s = Number(searchParams.get('step'));
-    if (s >= 1 && s <= 5) setStep(s);
+    if (s >= 1 && s <= 4) setStep(s);
   }, [searchParams]);
 
   function next() {
-    setStep(s => Math.min(s + 1, 5));
+    setStep(s => Math.min(s + 1, 4));
   }
 
   async function completeOnboarding() {
@@ -539,9 +512,9 @@ function OnboardingFlow() {
     if (url) window.location.href = url;
   }
 
-  // Mark onboarding complete when step 5 mounts (after Stripe redirect)
+  // Mark onboarding complete when step 4 mounts (after Stripe redirect)
   useEffect(() => {
-    if (step === 5) {
+    if (step === 4) {
       (async () => {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -572,12 +545,12 @@ function OnboardingFlow() {
       justifyContent: 'center',
       padding: '40px 24px',
     }}>
-      <div style={{ width: '100%', maxWidth: step === 4 ? 800 : 480 }}>
+      <div style={{ width: '100%', maxWidth: step === 3 ? 800 : 480 }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 40 }}>
           <Wordmark size="sm" />
         </div>
 
-        <ProgressDots current={step} total={5} />
+        <ProgressDots current={step} total={4} />
 
         {step === 1 && (
           <Step1
@@ -588,9 +561,8 @@ function OnboardingFlow() {
           />
         )}
         {step === 2 && <Step2 onNext={next} onSkip={next} />}
-        {step === 3 && <Step3 onSkip={next} />}
-        {step === 4 && <Step4 onFree={handleFree} onPaid={handlePaid} />}
-        {step === 5 && <Step5 artistName={artistName} onDone={completeOnboarding} />}
+        {step === 3 && <Step3 onFree={handleFree} onPaid={handlePaid} />}
+        {step === 4 && <Step4 artistName={artistName} onDone={completeOnboarding} />}
       </div>
     </div>
   );

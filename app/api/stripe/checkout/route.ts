@@ -14,8 +14,8 @@ export async function POST(request: Request) {
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: 'https://getzovo.app/onboarding?step=5',
-    cancel_url: 'https://getzovo.app/onboarding?step=4',
+    success_url: 'https://getzovo.app/onboarding?step=4',
+    cancel_url: 'https://getzovo.app/onboarding?step=3',
     metadata: { userId },
   });
 

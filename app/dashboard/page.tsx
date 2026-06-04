@@ -109,9 +109,9 @@ function StatCard({ label, value, subtext }: { label: string; value: string; sub
   );
 }
 
-// ── Connect CTA ───────────────────────────────────────────────────────────────
+// ── No artist CTA ─────────────────────────────────────────────────────────────
 
-function ConnectSpotifyCTA() {
+function AddArtistUrlCTA() {
   return (
     <div style={{ textAlign: 'center', padding: '40px 0' }}>
       <p style={{
@@ -120,10 +120,10 @@ function ConnectSpotifyCTA() {
         color: 'var(--ink-muted)',
         margin: '0 0 6px',
       }}>
-        Connect Spotify to see your stats
+        Add your Spotify artist URL to see your catalog stats
       </p>
       <a
-        href="/api/spotify/login"
+        href="/dashboard/settings"
         style={{
           fontFamily: "'DM Sans', sans-serif",
           fontSize: 14,
@@ -132,7 +132,7 @@ function ConnectSpotifyCTA() {
           textUnderlineOffset: 3,
         }}
       >
-        Connect Spotify →
+        Go to Settings →
       </a>
     </div>
   );
@@ -282,7 +282,7 @@ function DiscographyGrid({ catalog }: { catalog: Release[] }) {
 export default function DashboardPage() {
   const [artistName, setArtistName] = useState('');
   const [loading, setLoading] = useState(true);
-  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [hasArtistId, setHasArtistId] = useState(false);
   const [stats, setStats] = useState<ArtistStats | null>(null);
 
   const now = new Date();
@@ -297,22 +297,21 @@ export default function DashboardPage() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('artist_name')
+        .select('artist_name, artist_id')
         .eq('id', user.id)
         .single();
       if (profile?.artist_name) setArtistName(profile.artist_name);
 
-      const statsRes = await fetch('/api/spotify/artist-stats');
+      if (!profile?.artist_id) {
+        setLoading(false);
+        return;
+      }
 
+      setHasArtistId(true);
+      const statsRes = await fetch('/api/spotify/artist-stats');
       if (statsRes.ok) {
         const data: ArtistStats = await statsRes.json();
         setStats(data);
-        setSpotifyConnected(true);
-      } else {
-        const err = await statsRes.json();
-        if (err.error !== 'spotify_not_connected' && err.error !== 'no_artist_id') {
-          setSpotifyConnected(true);
-        }
       }
 
       setLoading(false);
@@ -366,8 +365,8 @@ export default function DashboardPage() {
             <SkeletonCard />
             <SkeletonCard />
           </div>
-        ) : !spotifyConnected ? (
-          <ConnectSpotifyCTA />
+        ) : !hasArtistId ? (
+          <AddArtistUrlCTA />
         ) : (
           <>
             <div className="stat-grid" style={{ marginBottom: 40 }}>
