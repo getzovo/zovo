@@ -1,3 +1,5 @@
+export const revalidate = 3600
+
 import { NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
@@ -73,7 +75,6 @@ export async function GET() {
 
   while (url) {
     const res = await fetch(url, {
-      cache: 'no-store',
       headers: { Authorization: `Bearer ${accessToken}` },
     })
     console.log('[artist-stats] Spotify response status:', res.status, 'url:', url.slice(0, 80))
