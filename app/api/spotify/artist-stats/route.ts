@@ -42,15 +42,17 @@ async function getAppToken(): Promise<string | null> {
 
 export async function GET() {
   const supabase = createServerSupabaseClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  console.log('[artist-stats] auth user:', user?.id ?? null, 'auth error:', authError?.message ?? null)
 
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('artist_id')
     .eq('id', user.id)
     .single()
+  console.log('[artist-stats] artist_id:', profile?.artist_id ?? null, 'profile error:', profileError?.message ?? null)
 
   if (!profile?.artist_id) {
     return NextResponse.json({ error: 'no_artist_id' }, { status: 400 })
@@ -74,6 +76,7 @@ export async function GET() {
       cache: 'no-store',
       headers: { Authorization: `Bearer ${accessToken}` },
     })
+    console.log('[artist-stats] Spotify response status:', res.status, 'url:', url.slice(0, 80))
     if (!res.ok) {
       const body = await res.text().catch(() => '(unreadable)')
       console.error('[artist-stats] Spotify API error:', res.status, body)
