@@ -1,3 +1,8 @@
+'use client'
+
+import { useState } from 'react'
+import PitchModal from './PitchModal'
+
 export interface Curator {
   id: string
   name: string
@@ -18,8 +23,10 @@ function formatFollowers(n: number): string {
 
 export default function CuratorCard({ curator }: { curator: Curator }) {
   const { name, playlist_name, genre_tags, platform, followers, notes } = curator
+  const [modalOpen, setModalOpen] = useState(false)
 
   return (
+    <>
     <div style={{
       backgroundColor: 'var(--warm-white)',
       border: '1px solid var(--border)',
@@ -126,21 +133,29 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
         }}>
           {followers != null ? `${formatFollowers(followers)} followers` : '—'}
         </span>
-        <button style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 12,
-          fontWeight: 500,
-          color: '#fff',
-          backgroundColor: 'var(--accent)',
-          border: 'none',
-          borderRadius: 5,
-          padding: '5px 12px',
-          cursor: 'pointer',
-          flexShrink: 0,
-        }}>
+        <button
+          onClick={() => setModalOpen(true)}
+          style={{
+            fontFamily: "'DM Sans', sans-serif",
+            fontSize: 12,
+            fontWeight: 500,
+            color: '#fff',
+            backgroundColor: 'var(--accent)',
+            border: 'none',
+            borderRadius: 5,
+            padding: '5px 12px',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
           Submit
         </button>
       </div>
     </div>
+
+    {modalOpen && (
+      <PitchModal curator={curator} onClose={() => setModalOpen(false)} />
+    )}
+    </>
   )
 }
