@@ -22,6 +22,7 @@ export default function PitchModal({ curator, onClose }: Props) {
   const [selectedIndex, setSelectedIndex] = useState<string>('')
   const [generating, setGenerating] = useState(false)
   const [pitch, setPitch] = useState<string | null>(null)
+  const [pitchId, setPitchId] = useState<string | null>(null)
   const [generateError, setGenerateError] = useState(false)
   const [pitchLimitReached, setPitchLimitReached] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -67,12 +68,14 @@ export default function PitchModal({ curator, onClose }: Props) {
     setGenerating(true)
     setGenerateError(false)
     setPitch(null)
+    setPitchId(null)
 
     try {
       const res = await fetch('/api/pitches/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          curatorId: curator.id,
           curatorName: curator.name,
           playlistName: curator.playlist_name,
           curatorNotes: curator.notes ?? '',
@@ -89,6 +92,7 @@ export default function PitchModal({ curator, onClose }: Props) {
       }
       if (!res.ok || !data.pitch) throw new Error(data.error ?? 'Generation failed')
       setPitch(data.pitch)
+      setPitchId(data.pitchId ?? null)
     } catch {
       setGenerateError(true)
     } finally {

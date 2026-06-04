@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
 
-  const { curatorName, playlistName, curatorNotes, genreTags, releaseName, releaseType, releaseDate } = body
+  const { curatorId, curatorName, playlistName, curatorNotes, genreTags, releaseName, releaseType, releaseDate } = body
 
   if (!curatorName || !playlistName || !releaseName) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -64,5 +64,21 @@ export async function POST(req: NextRequest) {
   })
 
   const pitch = (message.content[0] as { type: string; text: string }).text.trim()
-  return NextResponse.json({ pitch })
+
+  const { data: saved, error: saveError } = await supabase
+    .from('pitches')
+    .insert({
+      user_id: user.id,
+      curator_id: curatorId ?? null,
+      release_name: releaseName,
+      release_type: releaseType ?? null,
+      pitch_body: pitch,
+      status: 'draft',
+    })
+    .select('id')
+    .single()
+
+  if (saveError) console.error('[pitches/generate] save error:', saveError.message)
+
+  return NextResponse.json({ pitch, pitchId: saved?.id ?? null })
 }
