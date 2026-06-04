@@ -365,14 +365,22 @@ function PlanCard({
 function Step3({ onFree, onPaid }: { onFree: () => void; onPaid: (priceId: string) => void }) {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
-  function handleFree() {
+  async function handleFree() {
     setLoadingPlan('free');
-    onFree();
+    try {
+      await onFree();
+    } catch {
+      setLoadingPlan(null);
+    }
   }
 
-  function handlePaid(priceId: string, planKey: string) {
+  async function handlePaid(priceId: string, planKey: string) {
     setLoadingPlan(planKey);
-    onPaid(priceId);
+    try {
+      await onPaid(priceId);
+    } catch {
+      setLoadingPlan(null);
+    }
   }
 
   return (
@@ -491,11 +499,12 @@ function OnboardingFlow() {
   async function handleFree() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase
-      .from('profiles')
-      .update({ tier: 'free', onboarding_complete: true })
-      .eq('id', user.id);
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ tier: 'free', onboarding_complete: true })
+        .eq('id', user.id);
+    }
     router.push('/dashboard');
   }
 
