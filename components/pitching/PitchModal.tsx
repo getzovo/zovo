@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { type Curator } from './CuratorCard'
+import UpgradeModal from '@/components/ui/UpgradeModal'
 
 interface Release {
   name: string
@@ -293,44 +294,11 @@ export default function PitchModal({ curator, onClose }: Props) {
           {generating ? 'Generating…' : 'Generate Pitch'}
         </button>
 
-        {/* Pitch limit reached */}
-        {pitchLimitReached && (
-          <div style={{
-            backgroundColor: 'var(--off-white)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            padding: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-          }}>
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              color: 'var(--ink)',
-              margin: 0,
-            }}>
-              You&apos;ve used your 3 free pitches this month.
-            </p>
-            <a
-              href="/dashboard/settings"
-              style={{
-                display: 'inline-block',
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 500,
-                fontSize: 13,
-                color: '#fff',
-                backgroundColor: 'var(--accent)',
-                borderRadius: 6,
-                padding: '7px 14px',
-                textDecoration: 'none',
-                textAlign: 'center',
-              }}
-            >
-              Upgrade to Artist — $29/mo
-            </a>
-          </div>
-        )}
+        <UpgradeModal
+          isOpen={pitchLimitReached}
+          onClose={() => setPitchLimitReached(false)}
+          featureName="Unlimited Pitches"
+        />
 
         {/* Generate error */}
         {generateError && (

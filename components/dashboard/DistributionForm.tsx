@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { useSubscription } from '@/hooks/useSubscription'
+import UpgradeModal from '@/components/ui/UpgradeModal'
 
 const labelStyle: React.CSSProperties = {
   fontFamily: "'DM Mono', monospace",
@@ -55,6 +57,8 @@ export default function DistributionForm({ artistName }: { artistName: string })
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
+  const { isFree, isLoading: tierLoading } = useSubscription()
 
   function set(key: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -63,6 +67,10 @@ export default function DistributionForm({ artistName }: { artistName: string })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!tierLoading && isFree) {
+      setUpgradeModalOpen(true)
+      return
+    }
     setSubmitting(true)
     setError(null)
     try {
@@ -82,7 +90,7 @@ export default function DistributionForm({ artistName }: { artistName: string })
       })
       const data = await res.json()
       if (res.status === 403 && data.error === 'tier_locked') {
-        setError('Distribution is available on Artist and Pro plans. Upgrade in Settings.')
+        setUpgradeModalOpen(true)
         return
       }
       if (res.status === 403 && data.error === 'limit_reached') {
@@ -124,13 +132,19 @@ export default function DistributionForm({ artistName }: { artistName: string })
   }
 
   return (
-    <div style={{
-      backgroundColor: 'var(--off-white)',
-      border: '1px solid var(--border)',
-      borderRadius: 8,
-      padding: '24px',
-      maxWidth: 560,
-    }}>
+    <>
+      <UpgradeModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        featureName="Distribution Submissions"
+      />
+      <div style={{
+        backgroundColor: 'var(--off-white)',
+        border: '1px solid var(--border)',
+        borderRadius: 8,
+        padding: '24px',
+        maxWidth: 560,
+      }}>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -259,6 +273,7 @@ export default function DistributionForm({ artistName }: { artistName: string })
           </button>
         </div>
       </form>
-    </div>
+      </div>
+    </>
   )
 }
