@@ -503,14 +503,16 @@ function OnboardingFlow() {
     console.log('onFree called');
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    console.log('onFree user:', user?.id ?? null);
     if (user) {
-      await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ tier: 'free', onboarding_complete: true })
         .eq('id', user.id);
+      console.log('onFree update error:', updateError?.message ?? null);
     }
-    console.log('pushing to dashboard');
-    router.push('/dashboard');
+    console.log('navigating to dashboard');
+    window.location.href = '/dashboard';
   }
 
   async function handlePaid(priceId: string) {
