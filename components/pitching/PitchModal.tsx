@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { createClient } from '@/lib/supabase'
 import { type Curator } from './CuratorCard'
 
 interface Release {
@@ -17,6 +18,7 @@ interface Props {
 
 export default function PitchModal({ curator, onClose }: Props) {
   const [releases, setReleases] = useState<Release[]>([])
+  const [artistName, setArtistName] = useState('')
   const [loadingReleases, setLoadingReleases] = useState(true)
   const [fetchError, setFetchError] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState<string>('')
@@ -29,10 +31,23 @@ export default function PitchModal({ curator, onClose }: Props) {
   const selectedRelease = selectedIndex !== '' ? releases[Number(selectedIndex)] ?? null : null
 
   useEffect(() => {
-    fetch('/api/spotify/artist-stats')
-      .then((r) => r.json())
-      .then((data) => {
-        setReleases(data.full_catalog ?? [])
+    const supabase = createClient()
+
+    Promise.all([
+      fetch('/api/spotify/artist-stats').then((r) => r.json()),
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return null
+        return supabase
+          .from('profiles')
+          .select('artist_name')
+          .eq('id', user.id)
+          .single()
+          .then(({ data }) => data?.artist_name ?? '')
+      }),
+    ])
+      .then(([catalog, name]) => {
+        setReleases(catalog.full_catalog ?? [])
+        setArtistName(name ?? '')
         setLoadingReleases(false)
       })
       .catch(() => {
@@ -70,7 +85,7 @@ export default function PitchModal({ curator, onClose }: Props) {
           playlistName: curator.playlist_name,
           curatorNotes: curator.notes ?? '',
           genreTags: curator.genre_tags ?? [],
-          artistName: '', // populated server-side from profile in a future iteration
+          artistName,
           releaseName: selectedRelease.name,
           releaseType: selectedRelease.type,
           releaseDate: selectedRelease.year,
