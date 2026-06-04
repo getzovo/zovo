@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import CuratorCard, { type Curator } from '@/components/pitching/CuratorCard'
+import CuratorGrid from '@/components/pitching/CuratorGrid'
+import { type Curator } from '@/components/pitching/CuratorCard'
 
 export default async function PitchingPage() {
   const supabase = createServerSupabaseClient()
@@ -34,21 +35,7 @@ export default async function PitchingPage() {
         Find the right curators for your music.
       </p>
 
-      {curators && curators.length > 0 ? (
-        <div className="curator-grid">
-          {curators.map((curator: Curator) => (
-            <CuratorCard key={curator.id} curator={curator} />
-          ))}
-        </div>
-      ) : (
-        <p style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 14,
-          color: 'var(--ink-muted)',
-        }}>
-          No curators found.
-        </p>
-      )}
+      <CuratorGrid curators={(curators as Curator[]) ?? []} />
     </div>
   )
 }
