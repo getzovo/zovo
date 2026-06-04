@@ -18,11 +18,19 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
 
-  const { curatorName, playlistName, curatorNotes, genreTags, artistName, releaseName, releaseType, releaseDate } = body
+  const { curatorName, playlistName, curatorNotes, genreTags, releaseName, releaseType, releaseDate } = body
 
-  if (!curatorName || !playlistName || !artistName || !releaseName) {
+  if (!curatorName || !playlistName || !releaseName) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('artist_name')
+    .eq('id', user.id)
+    .single()
+
+  const artistName = profile?.artist_name ?? 'the artist'
 
   const userPrompt = [
     `Artist: ${artistName}`,
