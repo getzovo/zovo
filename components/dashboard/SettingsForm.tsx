@@ -131,9 +131,10 @@ interface Props {
   artistName: string
   genre: string
   tier: string
+  artistMonthlyPriceId: string
 }
 
-export default function SettingsForm({ userId, email, artistName, genre, tier }: Props) {
+export default function SettingsForm({ userId, email, artistName, genre, tier, artistMonthlyPriceId }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -141,8 +142,24 @@ export default function SettingsForm({ userId, email, artistName, genre, tier }:
   const [genreVal, setGenreVal] = useState(genre)
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [upgrading, setUpgrading] = useState(false)
 
   const isPaid = tier === 'artist' || tier === 'pro'
+
+  async function handleUpgrade() {
+    setUpgrading(true)
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId: artistMonthlyPriceId }),
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+    } catch {
+      setUpgrading(false)
+    }
+  }
 
   async function handleSaveProfile() {
     setSaving(true)
@@ -213,25 +230,11 @@ export default function SettingsForm({ userId, email, artistName, genre, tier }:
             <TierBadge tier={tier.charAt(0).toUpperCase() + tier.slice(1)} />
           </div>
           {isPaid ? (
-            <a
-              href="/api/stripe/checkout"
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontWeight: 500,
-                fontSize: 14,
-                color: 'var(--ink)',
-                border: '1px solid var(--border)',
-                borderRadius: 8,
-                padding: '9px 18px',
-                textDecoration: 'none',
-                display: 'inline-block',
-              }}
-            >
-              Manage Subscription
-            </a>
+            <GhostButton>Manage Subscription</GhostButton>
           ) : (
-            <a
-              href="/api/stripe/checkout"
+            <button
+              onClick={handleUpgrade}
+              disabled={upgrading}
               style={{
                 fontFamily: "'DM Sans', sans-serif",
                 fontWeight: 500,
@@ -241,12 +244,13 @@ export default function SettingsForm({ userId, email, artistName, genre, tier }:
                 border: 'none',
                 borderRadius: 8,
                 padding: '9px 18px',
-                textDecoration: 'none',
-                display: 'inline-block',
+                cursor: upgrading ? 'not-allowed' : 'pointer',
+                opacity: upgrading ? 0.6 : 1,
+                transition: 'opacity 0.15s',
               }}
             >
-              Upgrade
-            </a>
+              {upgrading ? 'Redirecting…' : 'Upgrade'}
+            </button>
           )}
         </div>
       </div>

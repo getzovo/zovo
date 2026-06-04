@@ -31,6 +31,7 @@ export default async function SettingsPage() {
         artistName={profile?.artist_name ?? ''}
         genre={profile?.genre ?? ''}
         tier={profile?.tier ?? 'free'}
+        artistMonthlyPriceId={process.env.STRIPE_ARTIST_MONTHLY_PRICE_ID ?? ''}
       />
     </div>
   )
