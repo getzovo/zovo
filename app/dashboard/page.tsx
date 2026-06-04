@@ -38,18 +38,23 @@ async function getAppToken(): Promise<string | null> {
   if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
     return cachedToken.token
   }
+  const clientId = process.env.SPOTIFY_CLIENT_ID
+  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
+  console.log('[dashboard] token req — id present:', !!clientId, 'secret present:', !!clientSecret)
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
     cache: 'no-store',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${Buffer.from(
-        `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
-      ).toString('base64')}`,
+      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
     },
     body: new URLSearchParams({ grant_type: 'client_credentials' }),
   })
-  if (!res.ok) return null
+  if (!res.ok) {
+    const body = await res.text().catch(() => '')
+    console.error(`[dashboard] token FAIL status=${res.status} body=${body.slice(0, 200)}`)
+    return null
+  }
   const { access_token, expires_in } = await res.json()
   cachedToken = { token: access_token, expiresAt: Date.now() + expires_in * 1000 }
   return access_token
@@ -72,7 +77,7 @@ async function getArtistStats(artistId: string): Promise<ArtistStats | null> {
   let albums: SpotifyAlbum[] = []
   let url: string | null =
     `https://api.spotify.com/v1/artists/${artistId}/albums` +
-    `?include_groups=album,single&limit=50&market=US`
+    `?include_groups=album,single&limit=10&market=US`
 
   while (url) {
     const res = await fetch(url, {
@@ -80,7 +85,8 @@ async function getArtistStats(artistId: string): Promise<ArtistStats | null> {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
     if (!res.ok) {
-      console.error('[dashboard] Spotify albums error:', res.status, await res.text().catch(() => ''))
+      const body = await res.text().catch(() => '')
+      console.error(`[dashboard] albums FAIL status=${res.status} url=${url.slice(0, 80)} body=${body.slice(0, 200)}`)
       break
     }
     const page: { items: SpotifyAlbum[]; next: string | null } = await res.json()
