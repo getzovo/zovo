@@ -1,7 +1,14 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { type Curator } from './CuratorCard'
+
+interface Release {
+  name: string
+  type: string
+  year: string
+  cover_art_url: string | null
+}
 
 interface Props {
   curator: Curator
@@ -9,7 +16,26 @@ interface Props {
 }
 
 export default function PitchModal({ curator, onClose }: Props) {
-  // Close on Escape
+  const [releases, setReleases] = useState<Release[]>([])
+  const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState<string>('')
+
+  const selectedRelease = selectedIndex !== '' ? releases[Number(selectedIndex)] ?? null : null
+
+  useEffect(() => {
+    fetch('/api/spotify/artist-stats')
+      .then((r) => r.json())
+      .then((data) => {
+        setReleases(data.full_catalog ?? [])
+        setLoading(false)
+      })
+      .catch(() => {
+        setFetchError(true)
+        setLoading(false)
+      })
+  }, [])
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
@@ -123,29 +149,48 @@ export default function PitchModal({ curator, onClose }: Props) {
           }}>
             Release
           </label>
-          <select
-            defaultValue=""
-            disabled
-            style={{
+          {fetchError ? (
+            <p style={{
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
+              fontSize: 13,
               color: 'var(--ink-muted)',
-              backgroundColor: 'var(--warm-white)',
-              border: '1px solid var(--border)',
-              borderRadius: 8,
-              padding: '10px 14px',
-              appearance: 'none',
-              cursor: 'not-allowed',
-              opacity: 0.7,
-            }}
-          >
-            <option value="" disabled>Select a release</option>
-          </select>
+              margin: 0,
+            }}>
+              Could not load releases. Check your Spotify connection in Settings.
+            </p>
+          ) : (
+            <select
+              value={selectedIndex}
+              disabled={loading}
+              onChange={(e) => setSelectedIndex(e.target.value)}
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 14,
+                color: selectedIndex === '' ? 'var(--ink-muted)' : 'var(--ink)',
+                backgroundColor: 'var(--warm-white)',
+                border: '1px solid var(--border)',
+                borderRadius: 8,
+                padding: '10px 14px',
+                appearance: 'none',
+                cursor: loading ? 'wait' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              <option value="" disabled>
+                {loading ? 'Loading releases…' : 'Select a release'}
+              </option>
+              {releases.map((r, i) => (
+                <option key={i} value={String(i)}>
+                  {r.name} ({r.year})
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Generate button */}
         <button
-          disabled
+          disabled={!selectedRelease}
           style={{
             fontFamily: "'DM Sans', sans-serif",
             fontWeight: 500,
@@ -155,9 +200,10 @@ export default function PitchModal({ curator, onClose }: Props) {
             border: 'none',
             borderRadius: 8,
             padding: '11px 0',
-            cursor: 'not-allowed',
-            opacity: 0.4,
+            cursor: selectedRelease ? 'pointer' : 'not-allowed',
+            opacity: selectedRelease ? 1 : 0.4,
             width: '100%',
+            transition: 'opacity 0.15s',
           }}
         >
           Generate Pitch
