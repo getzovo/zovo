@@ -31,13 +31,41 @@ function matchesGenre(tags: string[], genre: Exclude<GenreLabel, 'All'>): boolea
 
 export default function CuratorGrid({ curators }: { curators: Curator[] }) {
   const [activeGenre, setActiveGenre] = useState<GenreLabel>('All')
+  const [query, setQuery] = useState('')
 
-  const visible = activeGenre === 'All'
-    ? curators
-    : curators.filter((c) => matchesGenre(c.genre_tags ?? [], activeGenre as Exclude<GenreLabel, 'All'>))
+  const needle = query.trim().toLowerCase()
+
+  const visible = curators.filter((c) => {
+    const matchesSearch = !needle ||
+      c.name.toLowerCase().includes(needle) ||
+      c.playlist_name.toLowerCase().includes(needle)
+    const matchesFilter = activeGenre === 'All' ||
+      matchesGenre(c.genre_tags ?? [], activeGenre as Exclude<GenreLabel, 'All'>)
+    return matchesSearch && matchesFilter
+  })
 
   return (
     <>
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search curators or playlists…"
+        style={{
+          display: 'block',
+          width: '100%',
+          boxSizing: 'border-box',
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 14,
+          color: 'var(--ink)',
+          backgroundColor: 'var(--warm-white)',
+          border: '1px solid var(--border)',
+          borderRadius: 8,
+          padding: '10px 14px',
+          outline: 'none',
+          marginBottom: 16,
+        }}
+      />
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
         {GENRE_LABELS.map((genre) => {
           const isActive = genre === activeGenre
@@ -77,7 +105,7 @@ export default function CuratorGrid({ curators }: { curators: Curator[] }) {
           fontSize: 14,
           color: 'var(--ink-muted)',
         }}>
-          No curators found for this genre.
+          No curators match your search.
         </p>
       )}
     </>
