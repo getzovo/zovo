@@ -488,13 +488,14 @@ function OnboardingFlow() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     console.log('onFree user:', user?.id ?? null);
-    if (user) {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ tier: 'free', onboarding_complete: true })
-        .eq('id', user.id);
-      console.log('onFree update error:', error);
+    if (!user) {
+      console.error('onFree: no user session');
+      return;
     }
+    const { error } = await supabase
+      .from('profiles')
+      .upsert({ id: user.id, tier: 'free', onboarding_complete: true }, { onConflict: 'id' });
+    console.log('onFree upsert error:', error);
     setCompletedPlan('free');
     setStep(4);
   }
