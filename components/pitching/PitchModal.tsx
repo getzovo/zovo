@@ -18,7 +18,7 @@ interface Props {
 export default function PitchModal({ curator, onClose }: Props) {
   const [releases, setReleases] = useState<Release[]>([])
   const [loadingReleases, setLoadingReleases] = useState(true)
-  const [fetchError, setFetchError] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<string>('')
   const [generating, setGenerating] = useState(false)
   const [pitch, setPitch] = useState<string | null>(null)
@@ -30,13 +30,20 @@ export default function PitchModal({ curator, onClose }: Props) {
 
   useEffect(() => {
     fetch('/api/spotify/artist-stats')
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error('not_ok')
+        return r.json()
+      })
       .then((data) => {
-        setReleases(data.full_catalog ?? [])
+        if (!data.full_catalog?.length) {
+          setFetchError('Connect your Spotify account in Settings to load your releases.')
+        } else {
+          setReleases(data.full_catalog)
+        }
         setLoadingReleases(false)
       })
       .catch(() => {
-        setFetchError(true)
+        setFetchError('Connect your Spotify account in Settings to load your releases.')
         setLoadingReleases(false)
       })
   }, [])
@@ -206,7 +213,7 @@ export default function PitchModal({ curator, onClose }: Props) {
               color: 'var(--ink-muted)',
               margin: 0,
             }}>
-              Could not load releases. Check your Spotify connection in Settings.
+              {fetchError}
             </p>
           ) : (
             <select
