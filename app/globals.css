@@ -68,6 +68,16 @@ body {
   gap: 12px;
 }
 
+.curator-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 960px) {
+  .curator-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 768px) {
   .sidebar-wrapper {
     display: none;
@@ -78,4 +88,5 @@ body {
   .stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+  .curator-grid { grid-template-columns: 1fr; }
 }

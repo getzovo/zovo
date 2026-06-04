@@ -1,14 +1,16 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
+import CuratorCard, { type Curator } from '@/components/pitching/CuratorCard'
 
 export default async function PitchingPage() {
   const supabase = createServerSupabaseClient()
-  const { data: curators, error } = await supabase.from('curators').select('*')
+  const { data: curators, error } = await supabase
+    .from('curators')
+    .select('*')
+    .eq('active', true)
+    .order('followers', { ascending: false })
 
-  console.log('[pitching] curators error:', error)
-  console.log('[pitching] curators count:', curators?.length)
-  console.log('[pitching] curators sample:', JSON.stringify(curators?.slice(0, 2), null, 2))
-
-  const count = curators?.length ?? 0
+  console.log('[pitching] error:', error)
+  console.log('[pitching] count:', curators?.length)
 
   return (
     <div style={{ padding: '40px 40px 60px' }}>
@@ -31,13 +33,22 @@ export default async function PitchingPage() {
       }}>
         Find the right curators for your music.
       </p>
-      <p style={{
-        fontFamily: "'DM Mono', monospace",
-        fontSize: 14,
-        color: 'var(--ink)',
-      }}>
-        {count} curators
-      </p>
+
+      {curators && curators.length > 0 ? (
+        <div className="curator-grid">
+          {curators.map((curator: Curator) => (
+            <CuratorCard key={curator.id} curator={curator} />
+          ))}
+        </div>
+      ) : (
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 14,
+          color: 'var(--ink-muted)',
+        }}>
+          No curators found.
+        </p>
+      )}
     </div>
   )
 }
