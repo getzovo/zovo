@@ -21,9 +21,6 @@ export async function GET() {
     scope: [
       'user-read-private',
       'user-read-email',
-      'user-top-read',
-      'user-read-recently-played',
-      'user-read-playback-state',
     ].join(' '),
   })
 

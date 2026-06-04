@@ -27,7 +27,6 @@ function daysAgo(dateStr: string): string {
 
 interface LatestDrop { name: string; date: string; type: string }
 interface Release { name: string; type: string; year: string; cover_art_url: string | null }
-interface Track { name: string; artists: string; album_art: string | null; played_at: string }
 
 interface ArtistStats {
   total_releases: number;
@@ -285,7 +284,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [spotifyConnected, setSpotifyConnected] = useState(false);
   const [stats, setStats] = useState<ArtistStats | null>(null);
-  const [recentTrack, setRecentTrack] = useState<Track | null>(null);
 
   const now = new Date();
   const dateHeader = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
@@ -304,10 +302,7 @@ export default function DashboardPage() {
         .single();
       if (profile?.artist_name) setArtistName(profile.artist_name);
 
-      const [statsRes, playedRes] = await Promise.all([
-        fetch('/api/spotify/artist-stats'),
-        fetch('/api/spotify/recently-played'),
-      ]);
+      const statsRes = await fetch('/api/spotify/artist-stats');
 
       if (statsRes.ok) {
         const data: ArtistStats = await statsRes.json();
@@ -318,12 +313,6 @@ export default function DashboardPage() {
         if (err.error !== 'spotify_not_connected' && err.error !== 'no_artist_id') {
           setSpotifyConnected(true);
         }
-      }
-
-      if (playedRes.ok) {
-        const data = await playedRes.json();
-        if (data.tracks?.length) setRecentTrack(data.tracks[0]);
-        setSpotifyConnected(true);
       }
 
       setLoading(false);
@@ -339,10 +328,10 @@ export default function DashboardPage() {
         }
         .stat-grid {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(3, 1fr);
           gap: 16px;
         }
-        @media (max-width: 900px) {
+        @media (max-width: 800px) {
           .stat-grid { grid-template-columns: repeat(2, 1fr); }
         }
       `}</style>
@@ -376,7 +365,6 @@ export default function DashboardPage() {
             <SkeletonCard />
             <SkeletonCard />
             <SkeletonCard />
-            <SkeletonCard />
           </div>
         ) : !spotifyConnected ? (
           <ConnectSpotifyCTA />
@@ -397,11 +385,6 @@ export default function DashboardPage() {
                 label="Release Pace"
                 value={stats?.release_pace != null ? `Every ${stats.release_pace}w` : '--'}
                 subtext="Avg between drops"
-              />
-              <StatCard
-                label="Last Played"
-                value={recentTrack?.name ?? '--'}
-                subtext={recentTrack ? recentTrack.artists : 'Recently played'}
               />
             </div>
 
