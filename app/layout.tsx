@@ -1,15 +1,19 @@
-import type { Metadata } from 'next'
-import './globals.css'
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Zovo — Music Career Platform',
-  description: 'The all-in-one platform for independent music artists.',
-}
+  title: "Zovo — AI Music Career Manager",
+  description: "The AI music career manager for independent artists.",
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en">
       <body>{children}</body>
     </html>
-  )
+  );
 }
