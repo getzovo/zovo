@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { type Curator } from './CuratorCard'
 import UpgradeModal from '@/components/ui/UpgradeModal'
 
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export default function PitchModal({ curator, onClose }: Props) {
+  const router = useRouter()
   const [releases, setReleases] = useState<Release[]>([])
   const [loadingReleases, setLoadingReleases] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -126,12 +128,15 @@ export default function PitchModal({ curator, onClose }: Props) {
     if (!pitch || sending || sent) return
     setSending(true)
     try {
-      await fetch('/api/pitches/send', {
+      const res = await fetch('/api/pitches/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pitchId, curatorId: curator.id }),
       })
-      setSent(true)
+      if (res.ok) {
+        setSent(true)
+        router.refresh()
+      }
     } finally {
       setSending(false)
     }
