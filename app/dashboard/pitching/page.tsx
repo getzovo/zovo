@@ -1,4 +1,15 @@
-export default function PitchingPage() {
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+
+export default async function PitchingPage() {
+  const supabase = createServerSupabaseClient()
+  const { data: curators, error } = await supabase.from('curators').select('*')
+
+  console.log('[pitching] curators error:', error)
+  console.log('[pitching] curators count:', curators?.length)
+  console.log('[pitching] curators sample:', JSON.stringify(curators?.slice(0, 2), null, 2))
+
+  const count = curators?.length ?? 0
+
   return (
     <div style={{ padding: '40px 40px 60px' }}>
       <h1 style={{
@@ -16,10 +27,17 @@ export default function PitchingPage() {
         fontFamily: "'DM Sans', sans-serif",
         fontSize: 15,
         color: 'var(--ink-muted)',
-        margin: 0,
+        margin: '0 0 32px',
       }}>
         Find the right curators for your music.
       </p>
+      <p style={{
+        fontFamily: "'DM Mono', monospace",
+        fontSize: 14,
+        color: 'var(--ink)',
+      }}>
+        {count} curators
+      </p>
     </div>
-  );
+  )
 }
