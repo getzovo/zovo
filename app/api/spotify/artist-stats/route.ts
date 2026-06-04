@@ -23,6 +23,7 @@ async function getAppToken(): Promise<string | null> {
 
   const res = await fetch('https://accounts.spotify.com/api/token', {
     method: 'POST',
+    cache: 'no-store',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
       Authorization: `Basic ${Buffer.from(
@@ -70,6 +71,7 @@ export async function GET() {
 
   while (url) {
     const res = await fetch(url, {
+      cache: 'no-store',
       headers: { Authorization: `Bearer ${accessToken}` },
     })
     if (!res.ok) {
