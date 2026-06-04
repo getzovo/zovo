@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
 
-  const { curatorId, curatorName, playlistName, curatorNotes, genreTags, releaseName, releaseType, releaseDate } = body
+  const { curatorId, curatorName, playlistName, curatorNotes, genreTags, releaseName, releaseType, releaseDate, artistNameOverride } = body
 
   if (!curatorName || !playlistName || !releaseName) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  const artistName = profile?.artist_name ?? 'the artist'
+  const artistName = (artistNameOverride as string | undefined)?.trim() || profile?.artist_name || 'the artist'
 
   if (profile?.tier === 'free' || !profile?.tier) {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()

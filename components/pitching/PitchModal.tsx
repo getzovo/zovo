@@ -21,6 +21,8 @@ export default function PitchModal({ curator, onClose }: Props) {
   const [loadingReleases, setLoadingReleases] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<string>('')
+  const [manualTitle, setManualTitle] = useState('')
+  const [manualArtist, setManualArtist] = useState('')
   const [generating, setGenerating] = useState(false)
   const [pitch, setPitch] = useState<string | null>(null)
   const [pitchId, setPitchId] = useState<string | null>(null)
@@ -32,6 +34,11 @@ export default function PitchModal({ curator, onClose }: Props) {
   const pitchRef = useRef<HTMLDivElement>(null)
 
   const selectedRelease = selectedIndex !== '' ? releases[Number(selectedIndex)] ?? null : null
+  const showManual = !loadingReleases && releases.length === 0
+  const canGenerate = !generating && (
+    selectedRelease !== null ||
+    (manualTitle.trim().length > 0 && manualArtist.trim().length > 0)
+  )
 
   useEffect(() => {
     fetch('/api/spotify/artist-stats')
@@ -39,8 +46,10 @@ export default function PitchModal({ curator, onClose }: Props) {
         const data = await r.json()
         if (r.status === 429 || data.error === 'rate_limited') {
           setFetchError('Spotify is rate limited — wait a moment and try again.')
-        } else if (!r.ok || !data.full_catalog?.length) {
-          setFetchError('Connect your Spotify account in Settings to load your releases.')
+        } else if (!r.ok) {
+          setFetchError('Connect your Spotify artist profile in Settings to load your releases.')
+        } else if (!data.full_catalog?.length) {
+          setFetchError('No releases found on this Spotify account.')
         } else {
           setReleases(data.full_catalog)
         }
@@ -67,12 +76,16 @@ export default function PitchModal({ curator, onClose }: Props) {
   }, [onClose])
 
   async function handleGenerate() {
-    if (!selectedRelease) return
+    if (!canGenerate) return
     setGenerating(true)
     setGenerateError(false)
     setPitch(null)
     setPitchId(null)
     setSent(false)
+
+    const releasePayload = selectedRelease
+      ? { releaseName: selectedRelease.name, releaseType: selectedRelease.type, releaseDate: selectedRelease.year }
+      : { releaseName: manualTitle.trim(), releaseType: 'release', artistNameOverride: manualArtist.trim() }
 
     try {
       const res = await fetch('/api/pitches/generate', {
@@ -84,9 +97,7 @@ export default function PitchModal({ curator, onClose }: Props) {
           playlistName: curator.playlist_name,
           curatorNotes: curator.notes ?? '',
           genreTags: curator.genre_tags ?? [],
-          releaseName: selectedRelease.name,
-          releaseType: selectedRelease.type,
-          releaseDate: selectedRelease.year,
+          ...releasePayload,
         }),
       })
       const data = await res.json()
@@ -270,11 +281,96 @@ export default function PitchModal({ curator, onClose }: Props) {
               ))}
             </select>
           )}
+
+          {showManual && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                color: 'var(--ink-muted)',
+              }}>
+                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }} />
+                <span style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 9,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  whiteSpace: 'nowrap',
+                }}>
+                  Or enter manually
+                </span>
+                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }} />
+              </div>
+              <div>
+                <label style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 9,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: 'var(--ink-muted)',
+                  display: 'block',
+                  marginBottom: 5,
+                }}>
+                  Release Title
+                </label>
+                <input
+                  type="text"
+                  value={manualTitle}
+                  onChange={e => { setManualTitle(e.target.value); setPitch(null) }}
+                  placeholder="e.g. Midnight Drive"
+                  style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: 14,
+                    color: 'var(--ink)',
+                    backgroundColor: 'var(--warm-white)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    padding: '10px 14px',
+                    width: '100%',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{
+                  fontFamily: "'DM Mono', monospace",
+                  fontSize: 9,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  color: 'var(--ink-muted)',
+                  display: 'block',
+                  marginBottom: 5,
+                }}>
+                  Artist Name
+                </label>
+                <input
+                  type="text"
+                  value={manualArtist}
+                  onChange={e => { setManualArtist(e.target.value); setPitch(null) }}
+                  placeholder="Your artist name"
+                  style={{
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontSize: 14,
+                    color: 'var(--ink)',
+                    backgroundColor: 'var(--warm-white)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    padding: '10px 14px',
+                    width: '100%',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Generate button */}
         <button
-          disabled={!selectedRelease || generating}
+          disabled={!canGenerate}
           onClick={handleGenerate}
           style={{
             fontFamily: "'DM Sans', sans-serif",
@@ -285,8 +381,8 @@ export default function PitchModal({ curator, onClose }: Props) {
             border: 'none',
             borderRadius: 8,
             padding: '11px 0',
-            cursor: selectedRelease && !generating ? 'pointer' : 'not-allowed',
-            opacity: selectedRelease && !generating ? 1 : 0.4,
+            cursor: canGenerate ? 'pointer' : 'not-allowed',
+            opacity: canGenerate ? 1 : 0.4,
             width: '100%',
             transition: 'opacity 0.15s',
           }}
