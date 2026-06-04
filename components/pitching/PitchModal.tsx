@@ -26,6 +26,8 @@ export default function PitchModal({ curator, onClose }: Props) {
   const [generateError, setGenerateError] = useState(false)
   const [pitchLimitReached, setPitchLimitReached] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
   const pitchRef = useRef<HTMLDivElement>(null)
 
   const selectedRelease = selectedIndex !== '' ? releases[Number(selectedIndex)] ?? null : null
@@ -69,6 +71,7 @@ export default function PitchModal({ curator, onClose }: Props) {
     setGenerateError(false)
     setPitch(null)
     setPitchId(null)
+    setSent(false)
 
     try {
       const res = await fetch('/api/pitches/generate', {
@@ -105,6 +108,21 @@ export default function PitchModal({ curator, onClose }: Props) {
     await navigator.clipboard.writeText(pitch)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleSend() {
+    if (!pitch || sending || sent) return
+    setSending(true)
+    try {
+      await fetch('/api/pitches/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pitchId, curatorId: curator.id }),
+      })
+      setSent(true)
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -338,24 +356,46 @@ export default function PitchModal({ curator, onClose }: Props) {
               }}>
                 Your Pitch
               </span>
-              <button
-                onClick={handleCopy}
-                style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 10,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: copied ? 'var(--ink-muted)' : 'var(--ink)',
-                  backgroundColor: 'transparent',
-                  border: '1px solid var(--border)',
-                  borderRadius: 4,
-                  padding: '4px 10px',
-                  cursor: 'pointer',
-                  transition: 'color 0.15s',
-                }}
-              >
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={handleCopy}
+                  style={{
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: 10,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: copied ? 'var(--ink-muted)' : 'var(--ink)',
+                    backgroundColor: 'transparent',
+                    border: '1px solid var(--border)',
+                    borderRadius: 4,
+                    padding: '4px 10px',
+                    cursor: 'pointer',
+                    transition: 'color 0.15s',
+                  }}
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <button
+                  onClick={handleSend}
+                  disabled={sending || sent}
+                  style={{
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: 10,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: sent ? 'var(--ink-muted)' : 'var(--ink)',
+                    backgroundColor: 'transparent',
+                    border: '1px solid var(--border)',
+                    borderRadius: 4,
+                    padding: '4px 10px',
+                    cursor: sending || sent ? 'default' : 'pointer',
+                    opacity: sending ? 0.5 : 1,
+                    transition: 'color 0.15s, opacity 0.15s',
+                  }}
+                >
+                  {sent ? 'Sent ✓' : sending ? 'Sending…' : 'Send Pitch'}
+                </button>
+              </div>
             </div>
             <div style={{
               backgroundColor: 'var(--off-white)',

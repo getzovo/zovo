@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import CuratorGrid from '@/components/pitching/CuratorGrid'
+import PitchHistory from '@/components/pitching/PitchHistory'
 import { type Curator } from '@/components/pitching/CuratorCard'
 
 export default async function PitchingPage() {
@@ -36,6 +37,7 @@ export default async function PitchingPage() {
       </p>
 
       <CuratorGrid curators={(curators as Curator[]) ?? []} />
+      <PitchHistory />
     </div>
   )
 }

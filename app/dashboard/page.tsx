@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import Link from 'next/link'
+import GenerateReportButton from '@/components/dashboard/GenerateReportButton'
 
 const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
 const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER']
@@ -365,7 +366,7 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <>
-            <div className="stat-grid" style={{ marginBottom: 40 }}>
+            <div className="stat-grid" style={{ marginBottom: 20 }}>
               <StatCard
                 label="Releases"
                 value={stats ? String(stats.total_releases) : '--'}
@@ -381,6 +382,10 @@ export default async function DashboardPage() {
                 value={stats?.release_pace != null ? `Every ${stats.release_pace}w` : '--'}
                 subtext="Avg between drops"
               />
+            </div>
+
+            <div style={{ marginBottom: 40 }}>
+              <GenerateReportButton />
             </div>
 
             {stats && stats.recent_releases.length > 0 && (
