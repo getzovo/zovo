@@ -1,68 +1,124 @@
-'use client';
+import { createServerSupabaseClient } from '@/lib/supabase-server'
+import Link from 'next/link'
 
-import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase';
-
-const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
+const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER']
 
 function getGreeting(hour: number) {
-  if (hour >= 5 && hour < 12) return 'Good morning';
-  if (hour >= 12 && hour < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (hour >= 5 && hour < 12) return 'Good morning'
+  if (hour >= 12 && hour < 17) return 'Good afternoon'
+  return 'Good evening'
 }
 
 function daysAgo(dateStr: string): string {
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000);
-  if (days === 0) return 'Today';
-  if (days === 1) return '1 day ago';
-  if (days < 7) return `${days} days ago`;
-  const weeks = Math.floor(days / 7);
-  if (weeks === 1) return '1 week ago';
-  if (weeks < 5) return `${weeks} weeks ago`;
-  const months = Math.floor(days / 30);
-  if (months === 1) return '1 month ago';
-  return `${months} months ago`;
+  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
+  if (days === 0) return 'Today'
+  if (days === 1) return '1 day ago'
+  if (days < 7) return `${days} days ago`
+  const weeks = Math.floor(days / 7)
+  if (weeks === 1) return '1 week ago'
+  if (weeks < 5) return `${weeks} weeks ago`
+  const months = Math.floor(days / 30)
+  if (months === 1) return '1 month ago'
+  return `${months} months ago`
 }
 
-interface LatestDrop { name: string; date: string; type: string }
+// ── Spotify ───────────────────────────────────────────────────────────────────
+
+interface SpotifyAlbum {
+  name: string
+  album_type: string
+  release_date: string
+  images: { url: string }[]
+}
+
+let cachedToken: { token: string; expiresAt: number } | null = null
+
+async function getAppToken(): Promise<string | null> {
+  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
+    return cachedToken.token
+  }
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    cache: 'no-store',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: `Basic ${Buffer.from(
+        `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
+      ).toString('base64')}`,
+    },
+    body: new URLSearchParams({ grant_type: 'client_credentials' }),
+  })
+  if (!res.ok) return null
+  const { access_token, expires_in } = await res.json()
+  cachedToken = { token: access_token, expiresAt: Date.now() + expires_in * 1000 }
+  return access_token
+}
+
 interface Release { name: string; type: string; year: string; cover_art_url: string | null }
 
 interface ArtistStats {
-  total_releases: number;
-  latest_drop: LatestDrop | null;
-  release_pace: number | null;
-  recent_releases: Release[];
-  full_catalog: Release[];
+  total_releases: number
+  latest_drop: { name: string; date: string } | null
+  release_pace: number | null
+  recent_releases: Release[]
+  full_catalog: Release[]
 }
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
+async function getArtistStats(artistId: string): Promise<ArtistStats | null> {
+  const accessToken = await getAppToken()
+  if (!accessToken) return null
 
-const skeletonStyle: React.CSSProperties = {
-  backgroundColor: '#e8e4dc',
-  borderRadius: 6,
-  animation: 'pulse 1.4s ease-in-out infinite',
-};
+  let albums: SpotifyAlbum[] = []
+  let url: string | null =
+    `https://api.spotify.com/v1/artists/${artistId}/albums` +
+    `?include_groups=album,single&limit=50&market=US`
 
-function SkeletonCard() {
-  return (
-    <div style={{
-      backgroundColor: 'var(--off-white)',
-      border: '1px solid var(--border)',
-      borderRadius: 8,
-      padding: 20,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-    }}>
-      <div style={{ ...skeletonStyle, height: 10, width: '40%' }} />
-      <div style={{ ...skeletonStyle, height: 28, width: '60%' }} />
-      <div style={{ ...skeletonStyle, height: 10, width: '50%' }} />
-    </div>
-  );
+  while (url) {
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+    if (!res.ok) {
+      console.error('[dashboard] Spotify albums error:', res.status, await res.text().catch(() => ''))
+      break
+    }
+    const page: { items: SpotifyAlbum[]; next: string | null } = await res.json()
+    albums = [...albums, ...page.items]
+    url = page.next
+  }
+
+  console.log('[dashboard] fetched albums:', albums.length, 'for artist:', artistId)
+  if (albums.length === 0) return null
+
+  albums.sort((a, b) => new Date(b.release_date).getTime() - new Date(a.release_date).getTime())
+
+  const last5 = albums.slice(0, Math.min(5, albums.length))
+  let release_pace: number | null = null
+  if (last5.length >= 2) {
+    const dates = last5.map(a => new Date(a.release_date).getTime())
+    const diffs: number[] = []
+    for (let i = 0; i < dates.length - 1; i++) diffs.push(dates[i] - dates[i + 1])
+    release_pace = Math.round(diffs.reduce((s, d) => s + d, 0) / diffs.length / (1000 * 60 * 60 * 24 * 7))
+  }
+
+  const toRelease = (a: SpotifyAlbum): Release => ({
+    name: a.name,
+    type: a.album_type,
+    year: a.release_date.slice(0, 4),
+    cover_art_url: a.images[0]?.url ?? null,
+  })
+
+  return {
+    total_releases: albums.length,
+    latest_drop: { name: albums[0].name, date: albums[0].release_date },
+    release_pace,
+    recent_releases: last5.map(toRelease),
+    full_catalog: albums.slice(0, 20).map(toRelease),
+  }
 }
 
-// ── Stat card ────────────────────────────────────────────────────────────────
+// ── Components ────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, subtext }: { label: string; value: string; subtext: string }) {
   return (
@@ -106,39 +162,8 @@ function StatCard({ label, value, subtext }: { label: string; value: string; sub
         {subtext}
       </div>
     </div>
-  );
+  )
 }
-
-// ── No artist CTA ─────────────────────────────────────────────────────────────
-
-function AddArtistUrlCTA() {
-  return (
-    <div style={{ textAlign: 'center', padding: '40px 0' }}>
-      <p style={{
-        fontFamily: "'DM Sans', sans-serif",
-        fontSize: 14,
-        color: 'var(--ink-muted)',
-        margin: '0 0 6px',
-      }}>
-        Add your Spotify artist URL to see your catalog stats
-      </p>
-      <a
-        href="/dashboard/settings"
-        style={{
-          fontFamily: "'DM Sans', sans-serif",
-          fontSize: 14,
-          color: 'var(--ink)',
-          textDecoration: 'underline',
-          textUnderlineOffset: 3,
-        }}
-      >
-        Go to Settings →
-      </a>
-    </div>
-  );
-}
-
-// ── Recent releases ───────────────────────────────────────────────────────────
 
 function RecentReleases({ releases }: { releases: Release[] }) {
   return (
@@ -157,6 +182,7 @@ function RecentReleases({ releases }: { releases: Release[] }) {
         {releases.map((r, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {r.cover_art_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={r.cover_art_url}
                 alt={r.name}
@@ -192,11 +218,7 @@ function RecentReleases({ releases }: { releases: Release[] }) {
                 }}>
                   {r.type}
                 </span>
-                <span style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 10,
-                  color: 'var(--ink-muted)',
-                }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--ink-muted)' }}>
                   {r.year}
                 </span>
               </div>
@@ -205,10 +227,8 @@ function RecentReleases({ releases }: { releases: Release[] }) {
         ))}
       </div>
     </div>
-  );
+  )
 }
-
-// ── Discography grid ──────────────────────────────────────────────────────────
 
 function DiscographyGrid({ catalog }: { catalog: Release[] }) {
   return (
@@ -223,32 +243,18 @@ function DiscographyGrid({ catalog }: { catalog: Release[] }) {
       }}>
         Discography
       </div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(5, 1fr)',
-        gap: 16,
-      }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
         {catalog.map((r, i) => (
           <div key={i}>
             {r.cover_art_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={r.cover_art_url}
                 alt={r.name}
-                style={{
-                  width: '100%',
-                  aspectRatio: '1',
-                  objectFit: 'cover',
-                  borderRadius: 6,
-                  display: 'block',
-                }}
+                style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 6, display: 'block' }}
               />
             ) : (
-              <div style={{
-                width: '100%',
-                aspectRatio: '1',
-                borderRadius: 6,
-                backgroundColor: 'var(--border)',
-              }} />
+              <div style={{ width: '100%', aspectRatio: '1', borderRadius: 6, backgroundColor: 'var(--border)' }} />
             )}
             <div style={{
               fontFamily: "'DM Sans', sans-serif",
@@ -262,69 +268,38 @@ function DiscographyGrid({ catalog }: { catalog: Release[] }) {
             }}>
               {r.name}
             </div>
-            <div style={{
-              fontFamily: "'DM Mono', monospace",
-              fontSize: 10,
-              color: 'var(--ink-muted)',
-              marginTop: 2,
-            }}>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--ink-muted)', marginTop: 2 }}>
               {r.year}
             </div>
           </div>
         ))}
       </div>
     </div>
-  );
+  )
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function DashboardPage() {
-  const [artistName, setArtistName] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [hasArtistId, setHasArtistId] = useState(false);
-  const [stats, setStats] = useState<ArtistStats | null>(null);
+export default async function DashboardPage() {
+  const supabase = createServerSupabaseClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const now = new Date();
-  const dateHeader = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
-  const greeting = getGreeting(now.getHours());
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('artist_name, artist_id')
+    .eq('id', user!.id)
+    .single()
 
-  useEffect(() => {
-    (async () => {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+  const stats = profile?.artist_id ? await getArtistStats(profile.artist_id) : null
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('artist_name, artist_id')
-        .eq('id', user.id)
-        .single();
-      if (profile?.artist_name) setArtistName(profile.artist_name);
-
-      if (!profile?.artist_id) {
-        setLoading(false);
-        return;
-      }
-
-      setHasArtistId(true);
-      const statsRes = await fetch('/api/spotify/artist-stats');
-      if (statsRes.ok) {
-        const data: ArtistStats = await statsRes.json();
-        setStats(data);
-      }
-
-      setLoading(false);
-    })();
-  }, []);
+  const now = new Date()
+  const dateHeader = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`
+  const greeting = getGreeting(now.getHours())
+  const artistName = profile?.artist_name ?? ''
 
   return (
     <>
       <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
         .stat-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -359,14 +334,29 @@ export default function DashboardPage() {
           {greeting}{artistName ? `, ${artistName}` : ''}.
         </h1>
 
-        {loading ? (
-          <div className="stat-grid" style={{ marginBottom: 32 }}>
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
+        {!profile?.artist_id ? (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: 14,
+              color: 'var(--ink-muted)',
+              margin: '0 0 6px',
+            }}>
+              Add your Spotify artist URL to see your catalog stats
+            </p>
+            <Link
+              href="/dashboard/settings"
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 14,
+                color: 'var(--ink)',
+                textDecoration: 'underline',
+                textUnderlineOffset: 3,
+              }}
+            >
+              Go to Settings →
+            </Link>
           </div>
-        ) : !hasArtistId ? (
-          <AddArtistUrlCTA />
         ) : (
           <>
             <div className="stat-grid" style={{ marginBottom: 40 }}>
@@ -398,5 +388,5 @@ export default function DashboardPage() {
         )}
       </div>
     </>
-  );
+  )
 }
