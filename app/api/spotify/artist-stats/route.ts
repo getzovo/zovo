@@ -56,6 +56,7 @@ export async function GET() {
   }
 
   const accessToken = await getAppToken()
+  console.log('[artist-stats] token obtained:', !!accessToken)
   if (!accessToken) {
     return NextResponse.json({ error: 'spotify_unavailable' }, { status: 503 })
   }
@@ -65,15 +66,23 @@ export async function GET() {
     `https://api.spotify.com/v1/artists/${profile.artist_id}/albums` +
     `?include_groups=album,single&limit=50&market=US`
 
+  console.log('[artist-stats] fetching artist_id:', profile.artist_id)
+
   while (url) {
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
-    if (!res.ok) break
+    if (!res.ok) {
+      const body = await res.text().catch(() => '(unreadable)')
+      console.error('[artist-stats] Spotify API error:', res.status, body)
+      break
+    }
     const page: SpotifyAlbumsPage = await res.json()
     albums = [...albums, ...page.items]
     url = page.next
   }
+
+  console.log('[artist-stats] total albums fetched:', albums.length)
 
   if (albums.length === 0) {
     return NextResponse.json({
