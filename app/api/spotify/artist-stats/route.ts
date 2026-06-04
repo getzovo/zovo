@@ -51,13 +51,23 @@ export async function GET() {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('artist_id')
+    .select('artist_id, catalog_cache, catalog_cached_at')
     .eq('id', user.id)
     .single()
   console.log('[artist-stats] artist_id:', profile?.artist_id ?? null, 'profile error:', profileError?.message ?? null)
 
   if (!profile?.artist_id) {
     return NextResponse.json({ error: 'no_artist_id' }, { status: 400 })
+  }
+
+  const cacheAge = profile.catalog_cached_at
+    ? Date.now() - new Date(profile.catalog_cached_at).getTime()
+    : Infinity
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000
+
+  if (profile.catalog_cache && cacheAge < TWENTY_FOUR_HOURS) {
+    console.log('[artist-stats] returning cached catalog, age:', Math.round(cacheAge / 60000), 'min')
+    return NextResponse.json(profile.catalog_cache)
   }
 
   const accessToken = await getAppToken()
@@ -71,7 +81,7 @@ export async function GET() {
     `https://api.spotify.com/v1/artists/${profile.artist_id}/albums` +
     `?include_groups=album,single&limit=10&market=US`
 
-  console.log('[artist-stats] fetching artist_id:', profile.artist_id)
+  console.log('[artist-stats] fetching from Spotify, artist_id:', profile.artist_id)
 
   while (url) {
     const res = await fetch(url, {
@@ -82,6 +92,10 @@ export async function GET() {
       const body = await res.text().catch(() => '(unreadable)')
       console.error('[artist-stats] Spotify API error:', res.status, body)
       if (res.status === 429) {
+        if (profile.catalog_cache) {
+          console.log('[artist-stats] rate limited, serving stale cache')
+          return NextResponse.json(profile.catalog_cache)
+        }
         return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
       }
       break
@@ -127,11 +141,18 @@ export async function GET() {
     cover_art_url: a.images[0]?.url ?? null,
   })
 
-  return NextResponse.json({
+  const payload = {
     total_releases: albums.length,
     latest_drop,
     release_pace,
     recent_releases: albums.slice(0, 5).map(toRelease),
     full_catalog: albums.slice(0, 20).map(toRelease),
-  })
+  }
+
+  await supabase
+    .from('profiles')
+    .update({ catalog_cache: payload, catalog_cached_at: new Date().toISOString() })
+    .eq('id', user.id)
+
+  return NextResponse.json(payload)
 }
