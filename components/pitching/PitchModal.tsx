@@ -30,12 +30,11 @@ export default function PitchModal({ curator, onClose }: Props) {
 
   useEffect(() => {
     fetch('/api/spotify/artist-stats')
-      .then((r) => {
-        if (!r.ok) throw new Error('not_ok')
-        return r.json()
-      })
-      .then((data) => {
-        if (!data.full_catalog?.length) {
+      .then(async (r) => {
+        const data = await r.json()
+        if (r.status === 429 || data.error === 'rate_limited') {
+          setFetchError('Spotify is rate limited — wait a moment and try again.')
+        } else if (!r.ok || !data.full_catalog?.length) {
           setFetchError('Connect your Spotify account in Settings to load your releases.')
         } else {
           setReleases(data.full_catalog)

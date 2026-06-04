@@ -80,6 +80,9 @@ export async function GET() {
     if (!res.ok) {
       const body = await res.text().catch(() => '(unreadable)')
       console.error('[artist-stats] Spotify API error:', res.status, body)
+      if (res.status === 429) {
+        return NextResponse.json({ error: 'rate_limited' }, { status: 429 })
+      }
       break
     }
     const page: SpotifyAlbumsPage = await res.json()
