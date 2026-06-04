@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Wordmark from '@/components/wordmark';
 import { createClient } from '@/lib/supabase';
 
@@ -440,23 +440,19 @@ function Step3({ onFree, onPaid }: { onFree: () => void; onPaid: (priceId: strin
 
 // ── Step 4 — All set ──────────────────────────────────────────────────────────
 
-function Step4({ artistName, onDone }: { artistName: string; onDone: () => void }) {
+function Step4({ headline, subline }: { headline: string; subline: string }) {
   const [loading, setLoading] = useState(false);
 
   function handleDone() {
     setLoading(true);
-    onDone();
+    window.location.href = '/dashboard';
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, textAlign: 'center' }}>
       <div>
-        <h1 style={{ ...heading, textAlign: 'center' }}>
-          You&apos;re all set{artistName ? `, ${artistName}` : ''}.
-        </h1>
-        <p style={{ ...subtext, textAlign: 'center', marginBottom: 0 }}>
-          Your music career dashboard is ready.
-        </p>
+        <h1 style={{ ...heading, textAlign: 'center' }}>{headline}</h1>
+        <p style={{ ...subtext, textAlign: 'center', marginBottom: 0 }}>{subline}</p>
       </div>
       <button
         onClick={handleDone}
@@ -472,11 +468,10 @@ function Step4({ artistName, onDone }: { artistName: string; onDone: () => void 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 function OnboardingFlow() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const [step, setStep] = useState(1);
-  const [artistName, setArtistName] = useState('');
+  const [completedPlan, setCompletedPlan] = useState<'free' | 'artist' | 'pro' | null>(null);
 
   // Honour ?step= from Stripe redirect
   useEffect(() => {
@@ -488,28 +483,20 @@ function OnboardingFlow() {
     setStep(s => Math.min(s + 1, 4));
   }
 
-  async function completeOnboarding() {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    await supabase
-      .from('profiles')
-      .update({ onboarding_complete: true })
-      .eq('id', user.id);
-    router.push('/dashboard');
-  }
-
   async function handleFree() {
     console.log('onFree called');
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     console.log('onFree user:', user?.id ?? null);
     if (user) {
-      const { error } = await supabase.from('profiles').update({ tier: 'free', onboarding_complete: true }).eq('id', user.id)
-      console.log('onFree update error:', error)
-      await new Promise(resolve => setTimeout(resolve, 500))
+      const { error } = await supabase
+        .from('profiles')
+        .update({ tier: 'free', onboarding_complete: true })
+        .eq('id', user.id);
+      console.log('onFree update error:', error);
     }
-    window.location.href = '/dashboard';
+    setCompletedPlan('free');
+    setStep(4);
   }
 
   async function handlePaid(priceId: string) {
@@ -519,13 +506,13 @@ function OnboardingFlow() {
     const res = await fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ priceId, userId: user.id }),
+      body: JSON.stringify({ priceId, context: 'onboarding' }),
     });
     const { url } = await res.json();
     if (url) window.location.href = url;
   }
 
-  // Mark onboarding complete when step 4 mounts (after Stripe redirect)
+  // Runs when step 4 mounts — handles both free (already set) and Stripe redirect path
   useEffect(() => {
     if (step === 4) {
       (async () => {
@@ -534,10 +521,12 @@ function OnboardingFlow() {
         if (!user) return;
         const { data: profile } = await supabase
           .from('profiles')
-          .select('artist_name, onboarding_complete')
+          .select('artist_name, onboarding_complete, tier')
           .eq('id', user.id)
           .single();
-        if (profile?.artist_name) setArtistName(profile.artist_name);
+        if (profile?.tier === 'artist' || profile?.tier === 'pro') {
+          setCompletedPlan(profile.tier);
+        }
         if (!profile?.onboarding_complete) {
           await supabase
             .from('profiles')
@@ -566,16 +555,24 @@ function OnboardingFlow() {
         <ProgressDots current={step} total={4} />
 
         {step === 1 && (
-          <Step1
-            onNext={({ artistName: name }) => {
-              setArtistName(name);
-              next();
-            }}
-          />
+          <Step1 onNext={() => next()} />
         )}
         {step === 2 && <Step2 onNext={next} onSkip={next} />}
         {step === 3 && <Step3 onFree={handleFree} onPaid={handlePaid} />}
-        {step === 4 && <Step4 artistName={artistName} onDone={completeOnboarding} />}
+        {step === 4 && (
+          <Step4
+            headline={
+              completedPlan === 'artist' ? "You're in. Your Artist account is active." :
+              completedPlan === 'pro' ? "You're in. Your Pro account is active." :
+              "You're in."
+            }
+            subline={
+              completedPlan === 'free'
+                ? "Your free account is ready. Start by connecting your Spotify catalog or sending your first pitch."
+                : "Your music career dashboard is ready."
+            }
+          />
+        )}
       </div>
     </div>
   );

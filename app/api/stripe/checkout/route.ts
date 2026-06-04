@@ -11,14 +11,20 @@ export async function POST(request: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { priceId } = await request.json()
+  const { priceId, context } = await request.json()
   if (!priceId) return NextResponse.json({ error: 'Missing priceId' }, { status: 400 })
+
+  const successUrl = context === 'onboarding'
+    ? 'https://getzovo.app/onboarding?step=4'
+    : 'https://getzovo.app/dashboard?upgraded=true'
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: 'https://getzovo.app/dashboard?upgraded=true',
-    cancel_url: 'https://getzovo.app/dashboard/settings',
+    success_url: successUrl,
+    cancel_url: context === 'onboarding'
+      ? 'https://getzovo.app/onboarding'
+      : 'https://getzovo.app/dashboard/settings',
     client_reference_id: user.id,
   })
 
