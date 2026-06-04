@@ -26,11 +26,24 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('artist_name')
+    .select('artist_name, tier')
     .eq('id', user.id)
     .single()
 
   const artistName = profile?.artist_name ?? 'the artist'
+
+  if (profile?.tier === 'free' || !profile?.tier) {
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()
+    const { count } = await supabase
+      .from('pitches')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', startOfMonth)
+
+    if ((count ?? 0) >= 3) {
+      return NextResponse.json({ error: 'pitch_limit_reached', count: 3, limit: 3 }, { status: 403 })
+    }
+  }
 
   const userPrompt = [
     `Artist: ${artistName}`,

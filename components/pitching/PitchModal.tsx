@@ -23,6 +23,7 @@ export default function PitchModal({ curator, onClose }: Props) {
   const [generating, setGenerating] = useState(false)
   const [pitch, setPitch] = useState<string | null>(null)
   const [generateError, setGenerateError] = useState(false)
+  const [pitchLimitReached, setPitchLimitReached] = useState(false)
   const [copied, setCopied] = useState(false)
   const pitchRef = useRef<HTMLDivElement>(null)
 
@@ -82,6 +83,10 @@ export default function PitchModal({ curator, onClose }: Props) {
         }),
       })
       const data = await res.json()
+      if (res.status === 403 && data.error === 'pitch_limit_reached') {
+        setPitchLimitReached(true)
+        return
+      }
       if (!res.ok || !data.pitch) throw new Error(data.error ?? 'Generation failed')
       setPitch(data.pitch)
     } catch {
@@ -266,7 +271,46 @@ export default function PitchModal({ curator, onClose }: Props) {
           {generating ? 'Generating…' : 'Generate Pitch'}
         </button>
 
-        {/* Generated pitch */}
+        {/* Pitch limit reached */}
+        {pitchLimitReached && (
+          <div style={{
+            backgroundColor: 'var(--off-white)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+          }}>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif",
+              fontSize: 14,
+              color: 'var(--ink)',
+              margin: 0,
+            }}>
+              You&apos;ve used your 3 free pitches this month.
+            </p>
+            <a
+              href="/dashboard/settings"
+              style={{
+                display: 'inline-block',
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 500,
+                fontSize: 13,
+                color: '#fff',
+                backgroundColor: 'var(--accent)',
+                borderRadius: 6,
+                padding: '7px 14px',
+                textDecoration: 'none',
+                textAlign: 'center',
+              }}
+            >
+              Upgrade to Artist — $29/mo
+            </a>
+          </div>
+        )}
+
+        {/* Generate error */}
         {generateError && (
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
