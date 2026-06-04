@@ -222,8 +222,8 @@ function Step2({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
     if (!user) { setLoading(false); return; }
     const { error: dbError } = await supabase
       .from('profiles')
-      .update({ artist_id: artistId })
-      .eq('id', user.id);
+      .upsert({ id: user.id, artist_id: artistId }, { onConflict: 'id' });
+    console.log('[onboarding step2] artist_id save error:', dbError?.message ?? null);
     if (dbError) { setError(dbError.message); setLoading(false); return; }
     onNext();
   }

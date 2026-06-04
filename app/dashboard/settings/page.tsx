@@ -5,11 +5,18 @@ export default async function SettingsPage() {
   const supabase = createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('artist_name, genre, tier')
-    .eq('id', user!.id)
-    .single()
+  const [{ data: profile }, { data: spotifyToken }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('artist_name, genre, tier')
+      .eq('id', user!.id)
+      .single(),
+    supabase
+      .from('spotify_tokens')
+      .select('display_name')
+      .eq('user_id', user!.id)
+      .maybeSingle(),
+  ])
 
   return (
     <div style={{ padding: '40px 40px 60px', maxWidth: 580 }}>
@@ -32,6 +39,7 @@ export default async function SettingsPage() {
         genre={profile?.genre ?? ''}
         tier={profile?.tier ?? 'free'}
         artistMonthlyPriceId={process.env.STRIPE_ARTIST_MONTHLY_PRICE_ID ?? ''}
+        spotifyDisplayName={spotifyToken?.display_name ?? null}
       />
     </div>
   )
