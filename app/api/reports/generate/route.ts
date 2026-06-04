@@ -4,79 +4,12 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-interface SpotifyAlbum {
-  name: string
-  album_type: string
-  release_date: string
-  images: { url: string }[]
-}
-
-let cachedToken: { token: string; expiresAt: number } | null = null
-
-async function getSpotifyToken(): Promise<string | null> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
-    return cachedToken.token
-  }
-  const res = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    cache: 'no-store',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${Buffer.from(
-        `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
-      ).toString('base64')}`,
-    },
-    body: new URLSearchParams({ grant_type: 'client_credentials' }),
-  })
-  if (!res.ok) return null
-  const { access_token, expires_in } = await res.json()
-  cachedToken = { token: access_token, expiresAt: Date.now() + expires_in * 1000 }
-  return access_token
-}
-
-async function fetchCatalog(artistId: string) {
-  const token = await getSpotifyToken()
-  if (!token) return null
-
-  let albums: SpotifyAlbum[] = []
-  let url: string | null =
-    `https://api.spotify.com/v1/artists/${artistId}/albums?include_groups=album,single&limit=10&market=US`
-
-  while (url) {
-    const res = await fetch(url, { cache: 'no-store', headers: { Authorization: `Bearer ${token}` } })
-    if (!res.ok) break
-    const page: { items: SpotifyAlbum[]; next: string | null } = await res.json()
-    albums = [...albums, ...page.items]
-    url = page.next
-  }
-
-  if (albums.length === 0) return null
-
-  albums.sort((a, b) => new Date(b.release_date).getTime() - new Date(a.release_date).getTime())
-
-  const last5 = albums.slice(0, Math.min(5, albums.length))
-  let release_pace: number | null = null
-  if (last5.length >= 2) {
-    const dates = last5.map(a => new Date(a.release_date).getTime())
-    const diffs: number[] = []
-    for (let i = 0; i < dates.length - 1; i++) diffs.push(dates[i] - dates[i + 1])
-    release_pace = Math.round(diffs.reduce((s, d) => s + d, 0) / diffs.length / (1000 * 60 * 60 * 24 * 7))
-  }
-
-  return {
-    total_releases: albums.length,
-    latest_drop: { name: albums[0].name, date: albums[0].release_date },
-    release_pace,
-    recent_titles: last5.map(a => a.name),
-  }
-}
-
 const SYSTEM_PROMPT = `You generate monthly artist growth reports for independent musicians.
 Always respond with valid JSON only — no prose, no markdown fences, no explanation outside the JSON.
 The JSON must have exactly these four keys: "month_in_review", "whats_working", "whats_to_fix", "next_30_days".
 Each value is a string of 2-3 sentences. Be direct, specific, and strategic — write like a manager talking to their artist, not a hype man.`
 
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -91,12 +24,22 @@ export async function POST() {
     return NextResponse.json({ error: 'Connect your Spotify artist profile in Settings first.' }, { status: 400 })
   }
 
-  const catalog = await fetchCatalog(profile.artist_id)
-  if (!catalog) {
+  const cookieHeader = request.headers.get('cookie') ?? ''
+  const statsRes = await fetch('https://getzovo.app/api/spotify/artist-stats', {
+    headers: { cookie: cookieHeader },
+  })
+  if (!statsRes.ok) {
+    return NextResponse.json({ error: 'Could not load your Spotify catalog.' }, { status: 502 })
+  }
+  const stats = await statsRes.json()
+  if (!stats.total_releases) {
     return NextResponse.json({ error: 'Could not load your Spotify catalog.' }, { status: 502 })
   }
 
-  const { total_releases, latest_drop, release_pace, recent_titles } = catalog
+  const total_releases: number = stats.total_releases
+  const latest_drop: { name: string; date: string } = stats.latest_drop
+  const release_pace: number | null = stats.release_pace
+  const recent_titles: string[] = (stats.recent_releases ?? []).map((r: { name: string }) => r.name)
   const artistName = profile.artist_name ?? 'this artist'
   const genre = profile.genre ?? 'independent'
   const now = new Date()
