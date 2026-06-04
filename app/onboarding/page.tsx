@@ -366,10 +366,13 @@ function Step3({ onFree, onPaid }: { onFree: () => void; onPaid: (priceId: strin
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   async function handleFree() {
+    console.log('handleFree called');
     setLoadingPlan('free');
     try {
       await onFree();
-    } catch {
+      console.log('onFree completed');
+    } catch (err) {
+      console.error('onFree error:', err);
       setLoadingPlan(null);
     }
   }
@@ -497,6 +500,7 @@ function OnboardingFlow() {
   }
 
   async function handleFree() {
+    console.log('onFree called');
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -505,6 +509,7 @@ function OnboardingFlow() {
         .update({ tier: 'free', onboarding_complete: true })
         .eq('id', user.id);
     }
+    console.log('pushing to dashboard');
     router.push('/dashboard');
   }
 
