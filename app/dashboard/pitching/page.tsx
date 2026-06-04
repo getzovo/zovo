@@ -8,16 +8,17 @@ export default function PitchingPage() {
         letterSpacing: '-0.03em',
         color: 'var(--ink)',
         lineHeight: 1.2,
-        margin: '0 0 12px',
+        margin: '0 0 8px',
       }}>
-        Pitching
+        Curator Database
       </h1>
       <p style={{
         fontFamily: "'DM Sans', sans-serif",
         fontSize: 15,
         color: 'var(--ink-muted)',
+        margin: 0,
       }}>
-        Coming soon.
+        Find the right curators for your music.
       </p>
     </div>
   );
