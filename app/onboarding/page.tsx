@@ -505,13 +505,10 @@ function OnboardingFlow() {
     const { data: { user } } = await supabase.auth.getUser();
     console.log('onFree user:', user?.id ?? null);
     if (user) {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ tier: 'free', onboarding_complete: true })
-        .eq('id', user.id);
-      console.log('onFree update error:', updateError?.message ?? null);
+      const { error } = await supabase.from('profiles').update({ tier: 'free', onboarding_complete: true }).eq('id', user.id)
+      console.log('onFree update error:', error)
+      await new Promise(resolve => setTimeout(resolve, 500))
     }
-    console.log('navigating to dashboard');
     window.location.href = '/dashboard';
   }
 
