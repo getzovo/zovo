@@ -65,7 +65,7 @@ export async function GET() {
   let albums: SpotifyAlbum[] = []
   let url: string | null =
     `https://api.spotify.com/v1/artists/${profile.artist_id}/albums` +
-    `?include_groups=album,single&limit=50&market=US`
+    `?include_groups=album,single&limit=10&market=US`
 
   console.log('[artist-stats] fetching artist_id:', profile.artist_id)
 
