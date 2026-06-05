@@ -38,7 +38,7 @@ export default async function SettingsPage() {
         artistName={profile?.artist_name ?? ''}
         genre={profile?.genre ?? ''}
         tier={profile?.tier ?? 'free'}
-        artistMonthlyPriceId={process.env.STRIPE_ARTIST_MONTHLY_PRICE_ID ?? ''}
+        artistMonthlyPriceId={process.env.NEXT_PUBLIC_STRIPE_PRICE_ARTIST_MONTHLY ?? ''}
         spotifyDisplayName={spotifyToken?.display_name ?? null}
       />
     </div>

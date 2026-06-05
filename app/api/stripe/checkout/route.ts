@@ -18,15 +18,21 @@ export async function POST(request: Request) {
     ? 'https://getzovo.app/onboarding?step=4'
     : 'https://getzovo.app/dashboard?upgraded=true'
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: successUrl,
-    cancel_url: context === 'onboarding'
-      ? 'https://getzovo.app/onboarding'
-      : 'https://getzovo.app/dashboard/settings',
-    client_reference_id: user.id,
-  })
+  let session
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: context === 'onboarding'
+        ? 'https://getzovo.app/onboarding'
+        : 'https://getzovo.app/dashboard/settings',
+      client_reference_id: user.id,
+    })
+  } catch (err) {
+    console.error('[stripe/checkout] session create failed:', err)
+    return NextResponse.json({ error: 'Failed to create checkout session' }, { status: 500 })
+  }
 
   return NextResponse.json({ url: session.url })
 }
