@@ -58,13 +58,18 @@ export async function POST(request: Request) {
   ].join('\n')
 
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 600,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userPrompt }],
   })
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
+
+  // Strip markdown code fences if the model wrapped its response
+  const start = raw.indexOf('{')
+  const end = raw.lastIndexOf('}')
+  const toParse = start !== -1 && end !== -1 ? raw.slice(start, end + 1) : raw
 
   let report: {
     month_in_review: string
@@ -74,7 +79,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    report = JSON.parse(raw)
+    report = JSON.parse(toParse)
   } catch {
     console.error('[reports/generate] Failed to parse AI response:', raw.slice(0, 200))
     return NextResponse.json({ error: 'Failed to generate report. Please try again.' }, { status: 500 })

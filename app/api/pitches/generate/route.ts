@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   ].filter(Boolean).join('\n')
 
   const message = await client.messages.create({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 400,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userPrompt }],
