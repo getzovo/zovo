@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
   ].join('\n')
 
   const { error: sendError } = await resend.emails.send({
-    from: 'pitches@getzovo.app',
+    from: 'Zovo <notifications@mail.getzovo.app>',
     to: 'admin@getzovo.app',
     subject: `New Distribution Submission — ${releaseTitle}`,
     text: emailBody,
