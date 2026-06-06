@@ -15,7 +15,7 @@ export async function POST(request: Request) {
   if (!priceId) return NextResponse.json({ error: 'Missing priceId' }, { status: 400 })
 
   const successUrl = context === 'onboarding'
-    ? 'https://getzovo.app/onboarding?step=4'
+    ? 'https://getzovo.app/onboarding?step=5'
     : 'https://getzovo.app/dashboard?upgraded=true'
 
   let session

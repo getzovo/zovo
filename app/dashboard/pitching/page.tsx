@@ -17,12 +17,12 @@ export default async function PitchingPage() {
   return (
     <div style={{ padding: '40px 40px 60px' }}>
       <h1 style={{
-        fontFamily: "'Fraunces', serif",
-        fontWeight: 500,
-        fontSize: 32,
-        letterSpacing: '-0.03em',
-        color: 'var(--ink)',
-        lineHeight: 1.2,
+        fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+        fontWeight: 400,
+        fontSize: 40,
+        letterSpacing: '0.02em',
+        color: '#F5F5F0',
+        lineHeight: 1.1,
         margin: '0 0 8px',
       }}>
         Curator Database
@@ -30,7 +30,7 @@ export default async function PitchingPage() {
       <p style={{
         fontFamily: "'DM Sans', sans-serif",
         fontSize: 15,
-        color: 'var(--ink-muted)',
+        color: '#8A8786',
         margin: '0 0 32px',
       }}>
         Find the right curators for your music.

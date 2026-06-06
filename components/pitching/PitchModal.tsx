@@ -159,8 +159,8 @@ export default function PitchModal({ curator, onClose }: Props) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          backgroundColor: 'var(--warm-white)',
-          border: '1px solid var(--border)',
+          backgroundColor: '#111111',
+          border: '1px solid #1A1A1A',
           borderRadius: 10,
           padding: 28,
           width: '100%',
@@ -175,11 +175,11 @@ export default function PitchModal({ curator, onClose }: Props) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{
-            fontFamily: "'Fraunces', serif",
-            fontWeight: 500,
-            fontSize: 20,
-            letterSpacing: '-0.02em',
-            color: 'var(--ink)',
+            fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+            fontWeight: 400,
+            fontSize: 26,
+            letterSpacing: '0.02em',
+            color: '#F5F5F0',
           }}>
             Generate a Pitch
           </span>
@@ -190,7 +190,7 @@ export default function PitchModal({ curator, onClose }: Props) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: 'var(--ink-muted)',
+              color: '#8A8786',
               padding: 4,
               display: 'flex',
               alignItems: 'center',
@@ -204,8 +204,8 @@ export default function PitchModal({ curator, onClose }: Props) {
 
         {/* Curator summary */}
         <div style={{
-          backgroundColor: 'var(--off-white)',
-          border: '1px solid var(--border)',
+          backgroundColor: '#0A0A0A',
+          border: '1px solid #1A1A1A',
           borderRadius: 8,
           padding: '12px 14px',
           display: 'flex',
@@ -217,7 +217,7 @@ export default function PitchModal({ curator, onClose }: Props) {
             fontSize: 9,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
-            color: 'var(--ink-muted)',
+            color: '#8A8786',
           }}>
             Curator
           </span>
@@ -225,14 +225,14 @@ export default function PitchModal({ curator, onClose }: Props) {
             fontFamily: "'DM Sans', sans-serif",
             fontWeight: 500,
             fontSize: 14,
-            color: 'var(--ink)',
+            color: '#F5F5F0',
           }}>
             {curator.name}
           </span>
           <span style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 13,
-            color: 'var(--ink-muted)',
+            color: '#8A8786',
           }}>
             {curator.playlist_name}
           </span>
@@ -245,7 +245,7 @@ export default function PitchModal({ curator, onClose }: Props) {
             fontSize: 10,
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
-            color: 'var(--ink-muted)',
+            color: '#8A8786',
           }}>
             Release
           </label>
@@ -253,7 +253,7 @@ export default function PitchModal({ curator, onClose }: Props) {
             <p style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: 13,
-              color: 'var(--ink-muted)',
+              color: '#8A8786',
               margin: 0,
             }}>
               {fetchError}
@@ -266,9 +266,9 @@ export default function PitchModal({ curator, onClose }: Props) {
               style={{
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: 14,
-                color: selectedIndex === '' ? 'var(--ink-muted)' : 'var(--ink)',
-                backgroundColor: 'var(--warm-white)',
-                border: '1px solid var(--border)',
+                color: selectedIndex === '' ? '#8A8786' : '#F5F5F0',
+                backgroundColor: '#111111',
+                border: '1px solid #1A1A1A',
                 borderRadius: 8,
                 padding: '10px 14px',
                 appearance: 'none',
@@ -293,9 +293,9 @@ export default function PitchModal({ curator, onClose }: Props) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
-                color: 'var(--ink-muted)',
+                color: '#8A8786',
               }}>
-                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }} />
+                <div style={{ flex: 1, height: 1, backgroundColor: '#1A1A1A' }} />
                 <span style={{
                   fontFamily: "'DM Mono', monospace",
                   fontSize: 9,
@@ -305,7 +305,7 @@ export default function PitchModal({ curator, onClose }: Props) {
                 }}>
                   Or enter manually
                 </span>
-                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--border)' }} />
+                <div style={{ flex: 1, height: 1, backgroundColor: '#1A1A1A' }} />
               </div>
               <div>
                 <label style={{
@@ -313,7 +313,7 @@ export default function PitchModal({ curator, onClose }: Props) {
                   fontSize: 9,
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                  color: 'var(--ink-muted)',
+                  color: '#8A8786',
                   display: 'block',
                   marginBottom: 5,
                 }}>
@@ -327,9 +327,9 @@ export default function PitchModal({ curator, onClose }: Props) {
                   style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 14,
-                    color: 'var(--ink)',
-                    backgroundColor: 'var(--warm-white)',
-                    border: '1px solid var(--border)',
+                    color: '#F5F5F0',
+                    backgroundColor: '#111111',
+                    border: '1px solid #1A1A1A',
                     borderRadius: 8,
                     padding: '10px 14px',
                     width: '100%',
@@ -344,7 +344,7 @@ export default function PitchModal({ curator, onClose }: Props) {
                   fontSize: 9,
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                  color: 'var(--ink-muted)',
+                  color: '#8A8786',
                   display: 'block',
                   marginBottom: 5,
                 }}>
@@ -358,9 +358,9 @@ export default function PitchModal({ curator, onClose }: Props) {
                   style={{
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 14,
-                    color: 'var(--ink)',
-                    backgroundColor: 'var(--warm-white)',
-                    border: '1px solid var(--border)',
+                    color: '#F5F5F0',
+                    backgroundColor: '#111111',
+                    border: '1px solid #1A1A1A',
                     borderRadius: 8,
                     padding: '10px 14px',
                     width: '100%',
@@ -381,8 +381,8 @@ export default function PitchModal({ curator, onClose }: Props) {
             fontFamily: "'DM Sans', sans-serif",
             fontWeight: 500,
             fontSize: 14,
-            color: '#fff',
-            backgroundColor: 'var(--accent)',
+            color: '#F5F5F0',
+            backgroundColor: '#FF4500',
             border: 'none',
             borderRadius: 8,
             padding: '11px 0',
@@ -406,7 +406,7 @@ export default function PitchModal({ curator, onClose }: Props) {
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 13,
-            color: 'var(--accent)',
+            color: '#FF4500',
             margin: 0,
           }}>
             Something went wrong. Please try again.
@@ -421,7 +421,7 @@ export default function PitchModal({ curator, onClose }: Props) {
                 fontSize: 10,
                 letterSpacing: '0.12em',
                 textTransform: 'uppercase',
-                color: 'var(--ink-muted)',
+                color: '#8A8786',
               }}>
                 Your Pitch
               </span>
@@ -433,9 +433,9 @@ export default function PitchModal({ curator, onClose }: Props) {
                     fontSize: 10,
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase',
-                    color: copied ? 'var(--ink-muted)' : 'var(--ink)',
+                    color: copied ? '#8A8786' : '#F5F5F0',
                     backgroundColor: 'transparent',
-                    border: '1px solid var(--border)',
+                    border: '1px solid #1A1A1A',
                     borderRadius: 4,
                     padding: '4px 10px',
                     cursor: 'pointer',
@@ -452,9 +452,9 @@ export default function PitchModal({ curator, onClose }: Props) {
                     fontSize: 10,
                     letterSpacing: '0.08em',
                     textTransform: 'uppercase',
-                    color: sent ? 'var(--ink-muted)' : 'var(--ink)',
+                    color: sent ? '#8A8786' : '#F5F5F0',
                     backgroundColor: 'transparent',
-                    border: '1px solid var(--border)',
+                    border: '1px solid #1A1A1A',
                     borderRadius: 4,
                     padding: '4px 10px',
                     cursor: sending || sent ? 'default' : 'pointer',
@@ -467,13 +467,13 @@ export default function PitchModal({ curator, onClose }: Props) {
               </div>
             </div>
             <div style={{
-              backgroundColor: 'var(--off-white)',
-              border: '1px solid var(--border)',
+              backgroundColor: '#0A0A0A',
+              border: '1px solid #1A1A1A',
               borderRadius: 8,
               padding: '14px 16px',
               fontFamily: "'DM Sans', sans-serif",
               fontSize: 14,
-              color: 'var(--ink)',
+              color: '#F5F5F0',
               lineHeight: 1.7,
               whiteSpace: 'pre-wrap',
             }}>

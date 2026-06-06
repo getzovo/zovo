@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSubscription } from '@/hooks/useSubscription'
 import UpgradeModal from '@/components/ui/UpgradeModal'
@@ -36,9 +37,7 @@ function Field({ label, optional, children }: { label: string; optional?: boolea
     <div>
       <label style={monoSm}>
         {label}
-        {optional && (
-          <span style={{ marginLeft: 6, fontSize: 9, opacity: 0.5 }}>optional</span>
-        )}
+        {optional && <span style={{ marginLeft: 6, fontSize: 9, opacity: 0.5 }}>optional</span>}
       </label>
       {children}
     </div>
@@ -64,8 +63,8 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 function ProgressIndicator() {
   const steps = [
-    { n: 1, label: 'Submit',      active: true },
-    { n: 2, label: 'Review',      active: false },
+    { n: 1, label: 'Submit',       active: true },
+    { n: 2, label: 'Review',       active: false },
     { n: 3, label: 'Live on DSPs', active: false },
   ]
   return (
@@ -104,8 +103,158 @@ function ProgressIndicator() {
   )
 }
 
+const celebSteps = [
+  { n: 1, label: 'Submitted',    active: true },
+  { n: 2, label: 'Under Review', active: false },
+  { n: 3, label: 'Live on DSPs', active: false },
+]
+
+function CelebrationPanel({ onReset }: { onReset: () => void }) {
+  return (
+    <motion.div
+      key="celebration"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut', delay: 0.2 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 32 }}
+    >
+      {/* Headline */}
+      <div>
+        <h2 style={{
+          fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+          fontWeight: 400,
+          fontSize: 64,
+          letterSpacing: '0.02em',
+          color: '#F5F5F0',
+          lineHeight: 1,
+          margin: '0 0 12px',
+        }}>
+          You&apos;re in the queue.
+        </h2>
+        <p style={{
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 15,
+          color: '#8A8786',
+          margin: 0,
+          lineHeight: 1.6,
+        }}>
+          We&apos;ve got your release. You&apos;ll hear from us within 24 hours.
+        </p>
+      </div>
+
+      {/* Progress tracker */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 0 }}>
+        {celebSteps.map((step, i) => {
+          const stepDelay = 0.4 + i * 0.2
+          return (
+            <div key={step.n} style={{ display: 'flex', alignItems: 'flex-start', flex: i < celebSteps.length - 1 ? 1 : 'none' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <motion.div
+                  initial={{ scale: 0.7, opacity: 0 }}
+                  animate={step.active
+                    ? { scale: [0.7, 1], opacity: [0, 1] }
+                    : { scale: 1, opacity: 1 }
+                  }
+                  transition={{ duration: 0.35, delay: stepDelay, ease: 'easeOut' }}
+                  style={{ position: 'relative' }}
+                >
+                  {step.active && (
+                    <motion.div
+                      animate={{ scale: [1, 1.05, 1], opacity: [0.7, 1, 0.7] }}
+                      transition={{ delay: stepDelay + 0.4, duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{
+                        position: 'absolute', inset: 0,
+                        borderRadius: '50%',
+                        backgroundColor: '#FF4500',
+                      }}
+                    />
+                  )}
+                  <div style={{
+                    position: 'relative',
+                    width: 26, height: 26, borderRadius: '50%',
+                    backgroundColor: step.active ? '#FF4500' : 'transparent',
+                    border: step.active ? 'none' : '1px solid #2A2A2A',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: 10,
+                    color: step.active ? '#F5F5F0' : '#8A8786',
+                  }}>
+                    {step.n}
+                  </div>
+                </motion.div>
+                <motion.span
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.3, delay: stepDelay + 0.15 }}
+                  style={{
+                    fontFamily: "'DM Mono', monospace",
+                    fontSize: 9,
+                    letterSpacing: '0.1em',
+                    textTransform: 'uppercase',
+                    color: step.active ? '#FF4500' : '#8A8786',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {step.label}
+                </motion.span>
+              </div>
+              {i < celebSteps.length - 1 && (
+                <div style={{ flex: 1, height: 1, backgroundColor: '#1A1A1A', marginTop: 13, marginLeft: 8, marginRight: 8 }} />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 12 }}>
+        <button
+          type="button"
+          onClick={onReset}
+          style={{
+            flex: 1,
+            fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+            fontWeight: 400,
+            fontSize: 16,
+            letterSpacing: '0.08em',
+            color: '#F5F5F0',
+            backgroundColor: 'transparent',
+            border: '1px solid #2A2A2A',
+            borderRadius: 8,
+            padding: '13px 24px',
+            cursor: 'pointer',
+            transition: 'border-color 0.15s',
+          }}
+        >
+          Submit Another
+        </button>
+        <Link href="/dashboard" style={{ flex: 1, textDecoration: 'none' }}>
+          <button
+            type="button"
+            style={{
+              width: '100%',
+              fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+              fontWeight: 400,
+              fontSize: 16,
+              letterSpacing: '0.08em',
+              color: '#F5F5F0',
+              backgroundColor: '#FF4500',
+              border: 'none',
+              borderRadius: 8,
+              padding: '13px 24px',
+              cursor: 'pointer',
+            }}
+          >
+            Back to Dashboard
+          </button>
+        </Link>
+      </div>
+    </motion.div>
+  )
+}
+
 export default function DistributionForm({ artistName }: { artistName: string }) {
-  const [form, setForm] = useState({
+  const initialForm = {
     release_title: '',
     artist_name: artistName,
     release_type: 'Single',
@@ -114,7 +263,8 @@ export default function DistributionForm({ artistName }: { artistName: string })
     upc: '',
     isrc: '',
     notes: '',
-  })
+  }
+  const [form, setForm] = useState(initialForm)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -126,6 +276,12 @@ export default function DistributionForm({ artistName }: { artistName: string })
   function set(key: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
       setForm(f => ({ ...f, [key]: e.target.value }))
+  }
+
+  function resetForm() {
+    setForm({ ...initialForm, artist_name: artistName })
+    setSuccess(false)
+    setError(null)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -178,22 +334,6 @@ export default function DistributionForm({ artistName }: { artistName: string })
     setArtworkUrl(URL.createObjectURL(file))
   }
 
-  if (success) {
-    return (
-      <div style={{
-        backgroundColor: '#111111',
-        border: '1px solid #1A1A1A',
-        borderRadius: 12,
-        padding: 32,
-        maxWidth: 480,
-      }}>
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#F5F5F0', margin: 0, lineHeight: 1.6 }}>
-          Your release has been submitted. We&apos;ll be in touch within 2 business days.
-        </p>
-      </div>
-    )
-  }
-
   return (
     <>
       <style>{`
@@ -224,167 +364,179 @@ export default function DistributionForm({ artistName }: { artistName: string })
 
       <div className="dist-cols" style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
 
-        {/* ── Left: Form ─────────────────────────────────── */}
+        {/* ── Left: Form / Celebration ───────────────────── */}
         <div style={{ flex: '0 0 60%', minWidth: 0 }}>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
-
-            {/* RELEASE INFO */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-            >
-              <SectionLabel>Release Info</SectionLabel>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Field label="Release Title">
-                  <input
-                    type="text" required value={form.release_title}
-                    onChange={set('release_title')}
-                    placeholder="e.g. Neon Lights"
-                    className="dist-field" style={inputBase}
-                  />
-                </Field>
-                <Field label="Artist Name">
-                  <input
-                    type="text" required value={form.artist_name}
-                    onChange={set('artist_name')}
-                    className="dist-field" style={inputBase}
-                  />
-                </Field>
-              </div>
-
-              <Field label="Genre">
-                <input
-                  type="text" required value={form.genre}
-                  onChange={set('genre')}
-                  placeholder="e.g. Indie Pop"
-                  className="dist-field" style={inputBase}
-                />
-              </Field>
-
-              <Field label="Release Type">
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {RELEASE_TYPES.map(type => {
-                    const active = form.release_type === type
-                    return (
-                      <motion.button
-                        key={type}
-                        type="button"
-                        onClick={() => setForm(f => ({ ...f, release_type: type }))}
-                        whileTap={{ scale: 0.95 }}
-                        transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                        style={{
-                          flex: 1,
-                          padding: '9px 0',
-                          borderRadius: 8,
-                          border: active ? 'none' : '1px solid #2A2A2A',
-                          backgroundColor: active ? '#FF4500' : 'transparent',
-                          color: active ? '#F5F5F0' : '#8A8786',
-                          fontFamily: "'DM Mono', monospace",
-                          fontSize: 11,
-                          letterSpacing: '0.1em',
-                          textTransform: 'uppercase',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.15s, color 0.15s',
-                        }}
-                      >
-                        {type}
-                      </motion.button>
-                    )
-                  })}
-                </div>
-              </Field>
-            </motion.div>
-
-            {/* RELEASE DETAILS */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 }}
-              style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-            >
-              <SectionLabel>Release Details</SectionLabel>
-
-              <Field label="Release Date">
-                <input
-                  type="date" required value={form.release_date}
-                  onChange={set('release_date')}
-                  className="dist-field"
-                  style={{ ...inputBase, colorScheme: 'dark' }}
-                />
-              </Field>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Field label="UPC" optional>
-                  <input
-                    type="text" value={form.upc}
-                    onChange={set('upc')}
-                    placeholder="012345678901"
-                    className="dist-field" style={inputBase}
-                  />
-                </Field>
-                <Field label="ISRC" optional>
-                  <input
-                    type="text" value={form.isrc}
-                    onChange={set('isrc')}
-                    placeholder="US-S1Z-99-00001"
-                    className="dist-field" style={inputBase}
-                  />
-                </Field>
-              </div>
-
-              <Field label="Notes" optional>
-                <textarea
-                  value={form.notes}
-                  onChange={set('notes')}
-                  rows={4}
-                  placeholder="Anything else we should know about this release…"
-                  className="dist-field"
-                  style={{ ...inputBase, resize: 'vertical', lineHeight: 1.6 }}
-                />
-              </Field>
-            </motion.div>
-
-            {/* Submit + Progress */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, ease: 'easeOut', delay: 0.2 }}
-            >
-              {error && (
-                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#FF4500', margin: '0 0 12px' }}>
-                  {error}
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                style={{
-                  width: '100%',
-                  fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
-                  fontWeight: 400,
-                  fontSize: 18,
-                  letterSpacing: '0.08em',
-                  color: '#F5F5F0',
-                  backgroundColor: '#FF4500',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '14px 24px',
-                  cursor: submitting ? 'not-allowed' : 'pointer',
-                  opacity: submitting ? 0.6 : 1,
-                  transition: 'opacity 0.15s',
-                }}
+          <AnimatePresence mode="wait">
+            {success ? (
+              <CelebrationPanel key="celebration" onReset={resetForm} />
+            ) : (
+              <motion.div
+                key="form"
+                exit={{ x: -40, opacity: 0 }}
+                transition={{ duration: 0.4, ease: 'easeIn' }}
               >
-                {submitting ? 'Submitting…' : 'Submit Release'}
-              </button>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
-              <ProgressIndicator />
-            </motion.div>
+                  {/* RELEASE INFO */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+                  >
+                    <SectionLabel>Release Info</SectionLabel>
 
-          </form>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <Field label="Release Title">
+                        <input
+                          type="text" required value={form.release_title}
+                          onChange={set('release_title')}
+                          placeholder="e.g. Neon Lights"
+                          className="dist-field" style={inputBase}
+                        />
+                      </Field>
+                      <Field label="Artist Name">
+                        <input
+                          type="text" required value={form.artist_name}
+                          onChange={set('artist_name')}
+                          className="dist-field" style={inputBase}
+                        />
+                      </Field>
+                    </div>
+
+                    <Field label="Genre">
+                      <input
+                        type="text" required value={form.genre}
+                        onChange={set('genre')}
+                        placeholder="e.g. Indie Pop"
+                        className="dist-field" style={inputBase}
+                      />
+                    </Field>
+
+                    <Field label="Release Type">
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {RELEASE_TYPES.map(type => {
+                          const active = form.release_type === type
+                          return (
+                            <motion.button
+                              key={type}
+                              type="button"
+                              onClick={() => setForm(f => ({ ...f, release_type: type }))}
+                              whileTap={{ scale: 0.95 }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                              style={{
+                                flex: 1,
+                                padding: '9px 0',
+                                borderRadius: 8,
+                                border: active ? 'none' : '1px solid #2A2A2A',
+                                backgroundColor: active ? '#FF4500' : 'transparent',
+                                color: active ? '#F5F5F0' : '#8A8786',
+                                fontFamily: "'DM Mono', monospace",
+                                fontSize: 11,
+                                letterSpacing: '0.1em',
+                                textTransform: 'uppercase',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.15s, color 0.15s',
+                              }}
+                            >
+                              {type}
+                            </motion.button>
+                          )
+                        })}
+                      </div>
+                    </Field>
+                  </motion.div>
+
+                  {/* RELEASE DETAILS */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: 'easeOut', delay: 0.1 }}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+                  >
+                    <SectionLabel>Release Details</SectionLabel>
+
+                    <Field label="Release Date">
+                      <input
+                        type="date" required value={form.release_date}
+                        onChange={set('release_date')}
+                        className="dist-field"
+                        style={{ ...inputBase, colorScheme: 'dark' }}
+                      />
+                    </Field>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                      <Field label="UPC" optional>
+                        <input
+                          type="text" value={form.upc}
+                          onChange={set('upc')}
+                          placeholder="012345678901"
+                          className="dist-field" style={inputBase}
+                        />
+                      </Field>
+                      <Field label="ISRC" optional>
+                        <input
+                          type="text" value={form.isrc}
+                          onChange={set('isrc')}
+                          placeholder="US-S1Z-99-00001"
+                          className="dist-field" style={inputBase}
+                        />
+                      </Field>
+                    </div>
+
+                    <Field label="Notes" optional>
+                      <textarea
+                        value={form.notes}
+                        onChange={set('notes')}
+                        rows={4}
+                        placeholder="Anything else we should know about this release…"
+                        className="dist-field"
+                        style={{ ...inputBase, resize: 'vertical', lineHeight: 1.6 }}
+                      />
+                    </Field>
+                  </motion.div>
+
+                  {/* Submit + Progress */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, ease: 'easeOut', delay: 0.2 }}
+                  >
+                    {error && (
+                      <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#FF4500', margin: '0 0 12px' }}>
+                        {error}
+                      </p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      style={{
+                        width: '100%',
+                        fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+                        fontWeight: 400,
+                        fontSize: 18,
+                        letterSpacing: '0.08em',
+                        color: '#F5F5F0',
+                        backgroundColor: '#FF4500',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '14px 24px',
+                        cursor: submitting ? 'not-allowed' : 'pointer',
+                        opacity: submitting ? 0.6 : 1,
+                        transition: 'opacity 0.15s',
+                      }}
+                    >
+                      {submitting ? 'Submitting…' : 'Submit Release'}
+                    </button>
+
+                    <ProgressIndicator />
+                  </motion.div>
+
+                </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* ── Right: Preview Card ────────────────────────── */}

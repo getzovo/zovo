@@ -1,11 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --ink: #111010;
+  --ink: #0A0A0A;
+  --white: #F5F5F0;
+  --fire: #FF4500;
+  --muted: #444444;
   --ink-soft: #3d3c3c;
   --ink-muted: #8A8786;
   --accent: #E8440A;
@@ -36,8 +39,8 @@ body {
   top: 0;
   overflow-y: auto;
   flex-shrink: 0;
-  background: var(--warm-white);
-  border-right: 1px solid var(--border);
+  background: #0A0A0A;
+  border-right: 1px solid #1A1A1A;
   display: flex;
   flex-direction: column;
 }
@@ -48,18 +51,19 @@ body {
   top: 16px;
   left: 16px;
   z-index: 50;
-  background: var(--warm-white);
-  border: 1px solid var(--border);
+  background: #0A0A0A;
+  border: 1px solid #1A1A1A;
   border-radius: 6px;
   width: 36px;
   height: 36px;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  color: #F5F5F0;
 }
 
 .nav-item:hover {
-  background-color: var(--off-white) !important;
+  background-color: #111111 !important;
 }
 
 .stat-grid {
@@ -89,4 +93,19 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
   .curator-grid { grid-template-columns: 1fr; }
+  .features-grid {
+    grid-template-columns: 1fr !important;
+    gap: 40px !important;
+  }
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 56px 72px;
+}
+
+.beta-input::placeholder {
+  font-family: 'DM Mono', monospace;
+  color: #888;
 }

@@ -57,8 +57,8 @@ export default function UpgradeModal({ isOpen, onClose, featureName }: Props) {
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          backgroundColor: 'var(--warm-white)',
-          border: '1px solid var(--border)',
+          backgroundColor: '#111111',
+          border: '1px solid #1A1A1A',
           borderRadius: 10,
           padding: 28,
           width: '100%',
@@ -71,11 +71,11 @@ export default function UpgradeModal({ isOpen, onClose, featureName }: Props) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <h2 style={{
-            fontFamily: "'Fraunces', serif",
-            fontWeight: 500,
-            fontSize: 22,
-            letterSpacing: '-0.02em',
-            color: 'var(--ink)',
+            fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+            fontWeight: 400,
+            fontSize: 28,
+            letterSpacing: '0.02em',
+            color: '#F5F5F0',
             margin: 0,
             lineHeight: 1.2,
           }}>
@@ -88,7 +88,7 @@ export default function UpgradeModal({ isOpen, onClose, featureName }: Props) {
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: 'var(--ink-muted)',
+              color: '#8A8786',
               padding: 4,
               flexShrink: 0,
               display: 'flex',
@@ -103,8 +103,8 @@ export default function UpgradeModal({ isOpen, onClose, featureName }: Props) {
 
         {/* Body */}
         <div style={{
-          backgroundColor: 'var(--off-white)',
-          border: '1px solid var(--border)',
+          backgroundColor: '#0A0A0A',
+          border: '1px solid #1A1A1A',
           borderRadius: 8,
           padding: '16px 18px',
           display: 'flex',
@@ -114,7 +114,7 @@ export default function UpgradeModal({ isOpen, onClose, featureName }: Props) {
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 14,
-            color: 'var(--ink)',
+            color: '#F5F5F0',
             margin: 0,
             lineHeight: 1.6,
           }}>
@@ -122,11 +122,10 @@ export default function UpgradeModal({ isOpen, onClose, featureName }: Props) {
           </p>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
             <span style={{
-              fontFamily: "'Fraunces', serif",
-              fontWeight: 500,
+              fontFamily: "'DM Sans', sans-serif",
+              fontWeight: 600,
               fontSize: 28,
-              letterSpacing: '-0.02em',
-              color: 'var(--ink)',
+              color: '#F5F5F0',
               lineHeight: 1,
             }}>
               $29
@@ -135,7 +134,7 @@ export default function UpgradeModal({ isOpen, onClose, featureName }: Props) {
               fontFamily: "'DM Mono', monospace",
               fontSize: 11,
               letterSpacing: '0.06em',
-              color: 'var(--ink-muted)',
+              color: '#8A8786',
             }}>
               / month
             </span>
@@ -151,8 +150,8 @@ export default function UpgradeModal({ isOpen, onClose, featureName }: Props) {
               fontFamily: "'DM Sans', sans-serif",
               fontWeight: 500,
               fontSize: 14,
-              color: '#fff',
-              backgroundColor: 'var(--accent)',
+              color: '#F5F5F0',
+              backgroundColor: '#FF4500',
               border: 'none',
               borderRadius: 8,
               padding: '11px 0',
@@ -170,7 +169,7 @@ export default function UpgradeModal({ isOpen, onClose, featureName }: Props) {
               fontFamily: "'DM Sans', sans-serif",
               fontWeight: 400,
               fontSize: 14,
-              color: 'var(--ink-muted)',
+              color: '#8A8786',
               backgroundColor: 'transparent',
               border: 'none',
               cursor: 'pointer',

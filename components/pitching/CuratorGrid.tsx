@@ -57,9 +57,9 @@ export default function CuratorGrid({ curators }: { curators: Curator[] }) {
           boxSizing: 'border-box',
           fontFamily: "'DM Sans', sans-serif",
           fontSize: 14,
-          color: 'var(--ink)',
-          backgroundColor: 'var(--warm-white)',
-          border: '1px solid var(--border)',
+          color: '#F5F5F0',
+          backgroundColor: '#111111',
+          border: '1px solid #1A1A1A',
           borderRadius: 8,
           padding: '10px 14px',
           outline: 'none',
@@ -78,9 +78,9 @@ export default function CuratorGrid({ curators }: { curators: Curator[] }) {
                 fontSize: 11,
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase',
-                color: isActive ? '#fff' : 'var(--ink)',
-                backgroundColor: isActive ? 'var(--accent)' : 'transparent',
-                border: `1px solid ${isActive ? 'var(--accent)' : 'var(--border)'}`,
+                color: isActive ? '#F5F5F0' : '#8A8786',
+                backgroundColor: isActive ? '#FF4500' : 'transparent',
+                border: `1px solid ${isActive ? '#FF4500' : '#1A1A1A'}`,
                 borderRadius: 20,
                 padding: '5px 12px',
                 cursor: 'pointer',
@@ -103,7 +103,7 @@ export default function CuratorGrid({ curators }: { curators: Curator[] }) {
         <p style={{
           fontFamily: "'DM Sans', sans-serif",
           fontSize: 14,
-          color: 'var(--ink-muted)',
+          color: '#8A8786',
         }}>
           No curators match your search.
         </p>

@@ -19,8 +19,8 @@ const SECTIONS: { key: keyof Report; label: string }[] = [
 function Skeleton() {
   return (
     <div style={{
-      backgroundColor: 'var(--off-white)',
-      border: '1px solid var(--border)',
+      backgroundColor: '#111111',
+      border: '1px solid #1A1A1A',
       borderRadius: 8,
       padding: '20px 20px',
       display: 'flex',
@@ -34,13 +34,13 @@ function Skeleton() {
             width: 120,
             height: 10,
             borderRadius: 4,
-            backgroundColor: 'var(--border)',
+            backgroundColor: '#2A2A2A',
             animation: 'pulse 1.4s ease-in-out infinite',
           }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ height: 13, borderRadius: 4, backgroundColor: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite' }} />
-            <div style={{ height: 13, borderRadius: 4, backgroundColor: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite', width: '85%' }} />
-            <div style={{ height: 13, borderRadius: 4, backgroundColor: 'var(--border)', animation: 'pulse 1.4s ease-in-out infinite', width: '60%' }} />
+            <div style={{ height: 13, borderRadius: 4, backgroundColor: '#2A2A2A', animation: 'pulse 1.4s ease-in-out infinite' }} />
+            <div style={{ height: 13, borderRadius: 4, backgroundColor: '#2A2A2A', animation: 'pulse 1.4s ease-in-out infinite', width: '85%' }} />
+            <div style={{ height: 13, borderRadius: 4, backgroundColor: '#2A2A2A', animation: 'pulse 1.4s ease-in-out infinite', width: '60%' }} />
           </div>
         </div>
       ))}
@@ -52,8 +52,8 @@ function Skeleton() {
 function ReportCard({ report }: { report: Report }) {
   return (
     <div style={{
-      backgroundColor: 'var(--off-white)',
-      border: '1px solid var(--border)',
+      backgroundColor: '#111111',
+      border: '1px solid #1A1A1A',
       borderRadius: 8,
       padding: '20px 20px',
       display: 'flex',
@@ -64,14 +64,14 @@ function ReportCard({ report }: { report: Report }) {
       {SECTIONS.map(({ key, label }, i) => (
         <div key={key}>
           {i > 0 && (
-            <div style={{ height: 1, backgroundColor: 'var(--border)', marginBottom: 20 }} />
+            <div style={{ height: 1, backgroundColor: '#1A1A1A', marginBottom: 20 }} />
           )}
           <div style={{
             fontFamily: "'DM Mono', monospace",
             fontSize: 9,
             letterSpacing: '0.14em',
             textTransform: 'uppercase',
-            color: 'var(--ink-muted)',
+            color: '#8A8786',
             fontWeight: 400,
             marginBottom: 8,
           }}>
@@ -80,7 +80,7 @@ function ReportCard({ report }: { report: Report }) {
           <p style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 14,
-            color: 'var(--ink)',
+            color: '#F5F5F0',
             lineHeight: 1.7,
             margin: 0,
           }}>
@@ -125,8 +125,8 @@ export default function GenerateReportButton() {
           fontFamily: "'DM Sans', sans-serif",
           fontWeight: 500,
           fontSize: 14,
-          color: '#fff',
-          backgroundColor: '#E8440A',
+          color: '#F5F5F0',
+          backgroundColor: '#FF4500',
           border: 'none',
           borderRadius: 8,
           padding: '11px 20px',
@@ -144,7 +144,7 @@ export default function GenerateReportButton() {
         <p style={{
           fontFamily: "'DM Sans', sans-serif",
           fontSize: 13,
-          color: 'var(--accent)',
+          color: '#FF4500',
           margin: '12px 0 0',
         }}>
           {error}

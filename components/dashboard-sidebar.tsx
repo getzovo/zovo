@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Wordmark from '@/components/wordmark';
 import { createClient } from '@/lib/supabase';
 
 const PLAN_LABELS: Record<string, string> = {
   free: 'FREE PLAN',
   artist: 'ARTIST PLAN',
   pro: 'PRO PLAN',
+  manager: 'MANAGER PLAN',
+  label: 'LABEL PLAN',
 };
 
 const NAV = [
@@ -83,7 +84,15 @@ function SidebarContent({
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <Wordmark size="sm" />
+        <span style={{
+          fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+          fontSize: 28,
+          color: '#F5F5F0',
+          letterSpacing: '0.05em',
+          lineHeight: 1,
+        }}>
+          ZOVO<span style={{ color: '#FF4500' }}>.</span>
+        </span>
         {onClose && (
           <button
             onClick={onClose}
@@ -91,7 +100,7 @@ function SidebarContent({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: 'var(--ink-muted)',
+              color: '#8A8786',
               padding: 4,
               display: 'flex',
               alignItems: 'center',
@@ -105,7 +114,7 @@ function SidebarContent({
         )}
       </div>
 
-      <div style={{ height: 1, backgroundColor: 'var(--border)', margin: '0 0 8px' }} />
+      <div style={{ height: 1, backgroundColor: '#1A1A1A', margin: '0 0 8px' }} />
 
       <nav style={{ flex: 1, padding: '8px 0' }}>
         {NAV.map(({ label, href, exact, icon }) => {
@@ -123,10 +132,10 @@ function SidebarContent({
                 padding: '10px 16px',
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: 14,
-                color: isActive ? 'var(--ink)' : 'var(--ink-soft)',
+                color: isActive ? '#F5F5F0' : '#8A8786',
                 textDecoration: 'none',
-                backgroundColor: isActive ? 'var(--off-white)' : 'transparent',
-                borderLeft: isActive ? '2px solid var(--accent)' : '2px solid transparent',
+                backgroundColor: isActive ? '#111111' : 'transparent',
+                borderLeft: isActive ? '2px solid #FF4500' : '2px solid transparent',
                 transition: 'background-color 0.1s',
               }}
             >
@@ -137,19 +146,19 @@ function SidebarContent({
         })}
       </nav>
 
-      <div style={{ padding: '16px 16px 24px', borderTop: '1px solid var(--border)' }}>
+      <div style={{ padding: '16px 16px 24px', borderTop: '1px solid #1A1A1A' }}>
         <div style={{
           fontFamily: "'DM Mono', monospace",
           fontSize: 10,
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
-          backgroundColor: 'var(--off-white)',
-          border: '1px solid var(--border)',
+          backgroundColor: '#111111',
+          border: '1px solid #1A1A1A',
           borderRadius: 4,
           padding: '5px 8px',
           display: 'inline-block',
           marginBottom: 10,
-          color: 'var(--ink)',
+          color: '#8A8786',
         }}>
           {planLabel}
         </div>
@@ -162,7 +171,7 @@ function SidebarContent({
               padding: 0,
               fontFamily: "'DM Sans', sans-serif",
               fontSize: 13,
-              color: 'var(--ink-muted)',
+              color: '#8A8786',
               cursor: 'pointer',
               textDecoration: 'underline',
               textUnderlineOffset: 3,
@@ -220,8 +229,8 @@ export default function DashboardSidebar({ tier }: { tier: string }) {
             left: 0,
             bottom: 0,
             width: 240,
-            backgroundColor: 'var(--warm-white)',
-            borderRight: '1px solid var(--border)',
+            backgroundColor: '#0A0A0A',
+            borderRight: '1px solid #1A1A1A',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 100,

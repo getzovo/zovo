@@ -8,7 +8,7 @@ export default async function SettingsPage() {
   const [{ data: profile }, { data: spotifyToken }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('artist_name, genre, tier')
+      .select('artist_name, genre, tier, account_type')
       .eq('id', user!.id)
       .single(),
     supabase
@@ -21,12 +21,12 @@ export default async function SettingsPage() {
   return (
     <div style={{ padding: '40px 40px 60px', maxWidth: 580 }}>
       <h1 style={{
-        fontFamily: "'Fraunces', serif",
-        fontWeight: 500,
-        fontSize: 32,
-        letterSpacing: '-0.03em',
-        color: 'var(--ink)',
-        lineHeight: 1.2,
+        fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+        fontWeight: 400,
+        fontSize: 40,
+        letterSpacing: '0.02em',
+        color: '#F5F5F0',
+        lineHeight: 1.1,
         margin: '0 0 32px',
       }}>
         Settings
@@ -38,6 +38,7 @@ export default async function SettingsPage() {
         artistName={profile?.artist_name ?? ''}
         genre={profile?.genre ?? ''}
         tier={profile?.tier ?? 'free'}
+        accountType={profile?.account_type ?? 'artist'}
         artistMonthlyPriceId={process.env.NEXT_PUBLIC_STRIPE_PRICE_ARTIST_MONTHLY ?? ''}
         spotifyDisplayName={spotifyToken?.display_name ?? null}
       />

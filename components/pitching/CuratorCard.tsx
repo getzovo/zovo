@@ -28,8 +28,8 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
   return (
     <>
     <div style={{
-      backgroundColor: 'var(--warm-white)',
-      border: '1px solid var(--border)',
+      backgroundColor: '#111111',
+      border: '1px solid #1A1A1A',
       borderRadius: 8,
       padding: '16px',
       display: 'flex',
@@ -42,7 +42,7 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
           fontFamily: "'DM Sans', sans-serif",
           fontWeight: 500,
           fontSize: 14,
-          color: 'var(--ink)',
+          color: '#F5F5F0',
           lineHeight: 1.3,
         }}>
           {name}
@@ -53,9 +53,9 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
             fontSize: 9,
             letterSpacing: '0.1em',
             textTransform: 'uppercase',
-            color: 'var(--ink-muted)',
-            backgroundColor: 'var(--off-white)',
-            border: '1px solid var(--border)',
+            color: '#8A8786',
+            backgroundColor: '#1A1A1A',
+            border: '1px solid #1A1A1A',
             borderRadius: 4,
             padding: '2px 6px',
             flexShrink: 0,
@@ -70,7 +70,7 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
       <p style={{
         fontFamily: "'DM Sans', sans-serif",
         fontSize: 13,
-        color: 'var(--ink-muted)',
+        color: '#8A8786',
         margin: 0,
         lineHeight: 1.4,
         overflow: 'hidden',
@@ -90,9 +90,9 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
               fontSize: 9,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: 'var(--ink-soft)',
-              backgroundColor: 'var(--off-white)',
-              border: '1px solid var(--border)',
+              color: '#8A8786',
+              backgroundColor: '#1A1A1A',
+              border: '1px solid #1A1A1A',
               borderRadius: 3,
               padding: '2px 5px',
             }}>
@@ -106,7 +106,7 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
         <p style={{
           fontFamily: "'DM Sans', sans-serif",
           fontSize: 12,
-          color: 'var(--ink-muted)',
+          color: '#8A8786',
           margin: 0,
           lineHeight: 1.4,
           overflow: 'hidden',
@@ -129,7 +129,7 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
         <span style={{
           fontFamily: "'DM Mono', monospace",
           fontSize: 12,
-          color: 'var(--ink-soft)',
+          color: '#8A8786',
         }}>
           {followers != null ? `${formatFollowers(followers)} followers` : '—'}
         </span>
@@ -139,8 +139,8 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 12,
             fontWeight: 500,
-            color: '#fff',
-            backgroundColor: 'var(--accent)',
+            color: '#F5F5F0',
+            backgroundColor: '#FF4500',
             border: 'none',
             borderRadius: 5,
             padding: '5px 12px',

@@ -2,6 +2,8 @@ import { cookies, headers } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import GenerateReportButton from '@/components/dashboard/GenerateReportButton'
 import DashboardClient from './components/DashboardClient'
+import ManagerDashboard from './components/ManagerDashboard'
+import LabelDashboard from './components/LabelDashboard'
 
 const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
 const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER']
@@ -174,9 +176,12 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('artist_name, artist_id, tier')
+    .select('artist_name, artist_id, tier, account_type')
     .eq('id', user!.id)
     .single()
+
+  if (profile?.account_type === 'manager') return <ManagerDashboard />
+  if (profile?.account_type === 'label') return <LabelDashboard />
 
   const stats = profile?.artist_id ? await fetchArtistStats() : null
 

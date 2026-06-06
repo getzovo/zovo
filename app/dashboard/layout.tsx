@@ -20,7 +20,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--warm-white)' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0A0A0A' }}>
       <DashboardSidebar tier={tier} />
       <main style={{ flex: 1, minWidth: 0 }}>
         {children}
