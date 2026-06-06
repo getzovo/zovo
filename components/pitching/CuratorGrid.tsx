@@ -29,7 +29,7 @@ function matchesGenre(tags: string[], genre: Exclude<GenreLabel, 'All'>): boolea
   return tags.some((t) => allowed.includes(t.toLowerCase()))
 }
 
-export default function CuratorGrid({ curators }: { curators: Curator[] }) {
+export default function CuratorGrid({ curators, isManager }: { curators: Curator[]; isManager?: boolean }) {
   const [activeGenre, setActiveGenre] = useState<GenreLabel>('All')
   const [query, setQuery] = useState('')
 
@@ -96,7 +96,7 @@ export default function CuratorGrid({ curators }: { curators: Curator[] }) {
       {visible.length > 0 ? (
         <div className="curator-grid">
           {visible.map((curator) => (
-            <CuratorCard key={curator.id} curator={curator} />
+            <CuratorCard key={curator.id} curator={curator} isManager={isManager} />
           ))}
         </div>
       ) : (

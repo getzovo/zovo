@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null)
   if (!body) return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
 
-  const { curatorId, curatorName, playlistName, curatorNotes, genreTags, releaseName, releaseType, releaseDate, artistNameOverride } = body
+  const { curatorId, curatorName, playlistName, curatorNotes, genreTags, releaseName, releaseType, releaseDate, artistNameOverride, artistId } = body
 
   if (!curatorName || !playlistName || !releaseName) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
     .insert({
       user_id: user.id,
       curator_id: curatorId ?? null,
+      artist_id: artistId ?? null,
       release_name: releaseName,
       release_type: releaseType ?? null,
       pitch_body: pitch,

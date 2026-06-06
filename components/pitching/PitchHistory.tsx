@@ -8,7 +8,7 @@ export default async function PitchHistory() {
 
   const { data: pitches } = await supabase
     .from('pitches')
-    .select('id, release_name, status, created_at, curators(name, playlist_name)')
+    .select('id, release_name, status, created_at, curator_id, curators(name, playlist_name)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 

@@ -25,33 +25,61 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   if (!user) {
-    if (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')) {
+    if (
+      pathname.startsWith('/dashboard') ||
+      pathname.startsWith('/onboarding') ||
+      pathname.startsWith('/label')
+    ) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
     return supabaseResponse
   }
 
-  // Authenticated — bounce away from auth pages
-  if (pathname === '/login' || pathname === '/signup') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
+  // For routes that need account-type awareness, fetch profile once
+  const needsProfile =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/label') ||
+    pathname === '/login' ||
+    pathname === '/signup'
 
-  // Check onboarding status for protected routes
-  if (pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding')) {
+  if (needsProfile) {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('onboarding_complete')
+      .select('onboarding_complete, account_type')
       .eq('id', user.id)
       .single()
 
+    const accountType = profile?.account_type ?? 'artist'
     const onboardingComplete = profile?.onboarding_complete ?? false
+    const isLabel = accountType === 'label'
 
+    // Bounce authenticated users away from auth pages
+    if (pathname === '/login' || pathname === '/signup') {
+      const dest = isLabel && onboardingComplete ? '/label' : '/dashboard'
+      return NextResponse.redirect(new URL(dest, request.url))
+    }
+
+    // /label/* — label users only
+    if (pathname.startsWith('/label')) {
+      if (!isLabel) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+      if (!onboardingComplete) {
+        return NextResponse.redirect(new URL('/onboarding', request.url))
+      }
+      return supabaseResponse
+    }
+
+    // /dashboard — non-label users with completed onboarding
     if (pathname.startsWith('/dashboard') && !onboardingComplete) {
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
 
+    // /onboarding — redirect away if already complete
     if (pathname.startsWith('/onboarding') && onboardingComplete) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      const dest = isLabel ? '/label' : '/dashboard'
+      return NextResponse.redirect(new URL(dest, request.url))
     }
   }
 
@@ -59,5 +87,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/onboarding/:path*', '/onboarding', '/login', '/signup'],
+  matcher: ['/dashboard/:path*', '/onboarding/:path*', '/onboarding', '/login', '/signup', '/label/:path*', '/label'],
 }

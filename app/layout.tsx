@@ -9,8 +9,8 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "Zovo — AI Music Career Manager",
-  description: "The AI music career manager for independent artists.",
+  title: "Zovo — Run Independent Music",
+  description: "The platform independent artists, managers, and labels use to pitch, distribute, plan releases, and grow — powered by AI.",
 };
 
 export default function RootLayout({

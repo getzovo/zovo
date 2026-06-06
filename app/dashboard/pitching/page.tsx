@@ -5,11 +5,14 @@ import { type Curator } from '@/components/pitching/CuratorCard'
 
 export default async function PitchingPage() {
   const supabase = createServerSupabaseClient()
-  const { data: curators, error } = await supabase
-    .from('curators')
-    .select('*')
-    .eq('active', true)
-    .order('followers', { ascending: false })
+
+  const { data: { user } } = await supabase.auth.getUser()
+  const [{ data: curators, error }, { data: profile }] = await Promise.all([
+    supabase.from('curators').select('*').eq('active', true).order('followers', { ascending: false }),
+    user ? supabase.from('profiles').select('account_type').eq('id', user.id).single() : Promise.resolve({ data: null }),
+  ])
+
+  const isManager = profile?.account_type === 'manager'
 
   console.log('[pitching] error:', error)
   console.log('[pitching] count:', curators?.length)
@@ -36,7 +39,7 @@ export default async function PitchingPage() {
         Find the right curators for your music.
       </p>
 
-      <CuratorGrid curators={(curators as Curator[]) ?? []} />
+      <CuratorGrid curators={(curators as Curator[]) ?? []} isManager={isManager} />
       <PitchHistory />
     </div>
   )

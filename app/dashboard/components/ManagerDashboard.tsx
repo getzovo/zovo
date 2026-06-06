@@ -6,6 +6,7 @@ import AddArtistModal from './AddArtistModal'
 import BulkPitchModal from './BulkPitchModal'
 import RosterCalendar from './RosterCalendar'
 import RosterIntelligenceModal from './RosterIntelligenceModal'
+import HealthScorePopover from '@/components/dashboard/HealthScorePopover'
 
 interface CatalogRelease {
   name: string; type: string; year: string; release_date: string; cover_art_url: string | null
@@ -28,6 +29,7 @@ interface HealthScore {
 }
 interface RosterEntry {
   claimed: boolean
+  artist_id: string | null
   profile: ArtistProfile | null
   health_score: HealthScore
   roster_status: string
@@ -39,6 +41,13 @@ interface RosterEntry {
   artist_name_override: string | null
   genre_override: string | null
   claim_email: string | null
+}
+
+interface HealthAPIData {
+  score: number
+  breakdown: { cadence: number; pitches: number; catalog: number; distribution: number; profile: number }
+  status: 'green' | 'yellow' | 'red'
+  context_strings: { cadence: string; pitches: string; catalog: string; distribution: string; profile: string }
 }
 
 function artistName(e: RosterEntry): string {
@@ -112,7 +121,13 @@ function ArtistCard({ entry, onView }: { entry: RosterEntry; onView: () => void 
         <div style={{ fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif', fontSize: 24, letterSpacing: '0.02em', color: '#F5F5F0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
           {name}
         </div>
-        <HealthBadge score={entry.health_score.score} status={entry.health_score.status} pending={!entry.claimed} />
+        {entry.claimed && entry.artist_id ? (
+          <HealthScorePopover artistId={entry.artist_id}>
+            <HealthBadge score={entry.health_score.score} status={entry.health_score.status} />
+          </HealthScorePopover>
+        ) : (
+          <HealthBadge score={entry.health_score.score} status={entry.health_score.status} pending={!entry.claimed} />
+        )}
       </div>
 
       {genre && (
@@ -166,6 +181,88 @@ function ArtistCard({ entry, onView }: { entry: RosterEntry; onView: () => void 
   )
 }
 
+const H_STATUS: Record<'green'|'yellow'|'red', { label: string; color: string }> = {
+  green: { label: 'STRONG', color: '#22C55E' },
+  yellow: { label: 'FAIR', color: '#F59E0B' },
+  red: { label: 'AT RISK', color: '#EF4444' },
+}
+const H_ROWS: { key: keyof HealthAPIData['breakdown']; label: string; max: number }[] = [
+  { key: 'cadence',      label: 'Release Cadence',     max: 30 },
+  { key: 'pitches',      label: 'Pitch Activity',       max: 25 },
+  { key: 'catalog',      label: 'Catalog Growth',       max: 20 },
+  { key: 'distribution', label: 'Distribution',         max: 15 },
+  { key: 'profile',      label: 'Profile Completeness', max: 10 },
+]
+
+function ArtistHealthSection({ artistId }: { artistId: string }) {
+  const [data, setData] = useState<HealthAPIData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/roster/health-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ artist_id: artistId }),
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject()))
+      .then((d: HealthAPIData) => setData(d))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [artistId])
+
+  if (loading) {
+    return (
+      <div style={{ marginBottom: 40 }}>
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8786', marginBottom: 16 }}>HEALTH SCORE</div>
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#5A5A58' }}>LOADING...</div>
+      </div>
+    )
+  }
+
+  if (!data) return null
+
+  const st = H_STATUS[data.status]
+
+  return (
+    <div style={{ marginBottom: 40 }}>
+      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8786', marginBottom: 16 }}>HEALTH SCORE</div>
+      <div style={{ backgroundColor: '#111111', border: '1px solid #1A1A1A', borderRadius: 8, padding: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 24 }}>
+          <span style={{ fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif', fontSize: 80, lineHeight: 1, color: '#F5F5F0', letterSpacing: '0.02em' }}>
+            {data.score}
+          </span>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: st.color, backgroundColor: `${st.color}1A`, padding: '5px 10px', borderRadius: 6, marginBottom: 10 }}>
+            {st.label}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18, marginBottom: 20 }}>
+          {H_ROWS.map(({ key, label, max }) => {
+            const val = data.breakdown[key]
+            const pct = max > 0 ? Math.round((val / max) * 100) : 0
+            return (
+              <div key={key}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#F5F5F0' }}>{label}</span>
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, letterSpacing: '0.05em', color: '#8A8786' }}>{val}/{max}</span>
+                </div>
+                <div style={{ height: 4, backgroundColor: '#1F1F1F', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
+                  <div style={{ height: '100%', width: `${pct}%`, backgroundColor: '#FF4500', borderRadius: 2, transition: 'width 0.4s ease' }} />
+                </div>
+                <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: '#8A8786', lineHeight: 1.4 }}>
+                  {data.context_strings[key]}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+        <p style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#8A8786', margin: 0, lineHeight: 1.8, borderTop: '1px solid #1F1F1F', paddingTop: 14 }}>
+          70–100 STRONG · 40–69 FAIR · 0–39 AT RISK
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function ArtistView({ entry }: { entry: RosterEntry }) {
   const cache = entry.profile?.catalog_cache
   const cards = [
@@ -184,6 +281,9 @@ function ArtistView({ entry }: { entry: RosterEntry }) {
           </motion.div>
         ))}
       </div>
+
+      {entry.artist_id && <ArtistHealthSection artistId={entry.artist_id} />}
+
       {(cache?.recent_releases?.length ?? 0) > 0 && (
         <div style={{ marginBottom: 40 }}>
           <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8786', marginBottom: 16 }}>RECENT RELEASES</div>

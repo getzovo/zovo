@@ -84,6 +84,7 @@ export async function GET() {
 
       return {
         claimed: true,
+        artist_id: roster.artist_id,
         profile: prof ?? null,
         health_score: calcHealthScore(cache, !!prof?.artist_id, !!prof?.genre, pitchCount, distCount),
         roster_status: roster.status,

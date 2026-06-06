@@ -21,7 +21,7 @@ function formatFollowers(n: number): string {
   return String(n)
 }
 
-export default function CuratorCard({ curator }: { curator: Curator }) {
+export default function CuratorCard({ curator, isManager }: { curator: Curator; isManager?: boolean }) {
   const { name, playlist_name, genre_tags, platform, followers, notes } = curator
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -154,7 +154,7 @@ export default function CuratorCard({ curator }: { curator: Curator }) {
     </div>
 
     {modalOpen && (
-      <PitchModal curator={curator} onClose={() => setModalOpen(false)} />
+      <PitchModal curator={curator} onClose={() => setModalOpen(false)} isManager={isManager} />
     )}
     </>
   )

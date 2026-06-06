@@ -220,8 +220,8 @@ const STEP1_COPY: Record<AccountType, { fieldLabel: string; placeholder: string;
   label:   { fieldLabel: 'Label Name',  placeholder: 'Your label name',  buttonText: 'Set my label name' },
 }
 
-function Step1({ onNext, accountType }: { onNext: (data: { artistName: string; genre: string }) => void; accountType: AccountType }) {
-  const [artistName, setArtistName] = useState('');
+function Step1({ onNext, accountType, initialName = '' }: { onNext: (data: { artistName: string; genre: string }) => void; accountType: AccountType; initialName?: string }) {
+  const [artistName, setArtistName] = useState(initialName);
   const [genre, setGenre] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -232,9 +232,26 @@ function Step1({ onNext, accountType }: { onNext: (data: { artistName: string; g
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
+
+    const profileUpdate: Record<string, unknown> = { artist_name: artistName.trim(), genre };
+    if (accountType === 'label') profileUpdate.account_type = 'label';
+
     const { error: dbError } = await supabase
-      .from('profiles').update({ artist_name: artistName.trim(), genre }).eq('id', user.id);
+      .from('profiles').update(profileUpdate).eq('id', user.id);
     if (dbError) { setError(dbError.message); setLoading(false); return; }
+
+    if (accountType === 'label') {
+      const { data: label, error: labelError } = await supabase
+        .from('labels')
+        .insert({ name: artistName.trim(), owner_user_id: user.id })
+        .select('id')
+        .single();
+      if (labelError) { setError(labelError.message); setLoading(false); return; }
+      if (label) {
+        await supabase.from('profiles').update({ label_id: label.id }).eq('id', user.id);
+      }
+    }
+
     onNext({ artistName: artistName.trim(), genre });
   }
 
@@ -416,9 +433,9 @@ function Step3({ onFree, onPaid, accountType }: { onFree: () => void; onPaid: (p
 
 // ── Step 5 — All set ──────────────────────────────────────────────────────────
 
-function Step5({ headline, subline }: { headline: string; subline: string }) {
+function Step5({ headline, subline, dest = '/dashboard' }: { headline: string; subline: string; dest?: string }) {
   const [loading, setLoading] = useState(false);
-  function handleDone() { setLoading(true); window.location.href = '/dashboard'; }
+  function handleDone() { setLoading(true); window.location.href = dest; }
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, textAlign: 'center' }}>
       <div>
@@ -441,10 +458,18 @@ function OnboardingFlow() {
   const [step, setStep] = useState(1);
   const [accountType, setAccountType] = useState<AccountType>('artist');
   const [completedPlan, setCompletedPlan] = useState<'free' | 'artist' | 'pro' | null>(null);
+  const [initialLabelName, setInitialLabelName] = useState('');
 
-  // Honour ?step= from Stripe redirect
+  // Honour ?step= from Stripe redirect; ?type= pre-selects account type and skips Step 0
   useEffect(() => {
     const s = Number(searchParams.get('step'));
+    const t = searchParams.get('type') as AccountType | null;
+    const l = searchParams.get('label') ?? '';
+    if (t && ['artist', 'manager', 'label'].includes(t)) {
+      setAccountType(t);
+      if (t === 'label' && l) setInitialLabelName(l);
+      if (!s || s < 1 || s > 6) setStep(2);
+    }
     if (s >= 1 && s <= 6) setStep(s);
   }, [searchParams]);
 
@@ -526,11 +551,12 @@ function OnboardingFlow() {
         </div>
 
         {step === 1 && <Step0 onSelect={handleAccountType} />}
-        {step === 2 && <Step1 onNext={() => next()} accountType={accountType} />}
+        {step === 2 && <Step1 onNext={() => next()} accountType={accountType} initialName={initialLabelName} />}
         {step === 3 && <Step2 onNext={next} onSkip={next} />}
         {step === 4 && <Step3 onFree={handleFree} onPaid={handlePaid} accountType={accountType} />}
         {step === 6 && (
           <Step5
+            dest={accountType === 'label' ? '/label' : '/dashboard'}
             headline={
               completedPlan === 'artist' ? "You're in. Your Artist account is active." :
               completedPlan === 'pro'    ? "You're in. Your Pro account is active." :

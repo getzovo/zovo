@@ -41,13 +41,22 @@ export default function Login() {
     setError('');
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError) {
       setError(authError.message);
       setLoading(false);
     } else {
-      router.push('/dashboard');
+      let dest = '/dashboard';
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('account_type')
+          .eq('id', user.id)
+          .single();
+        if (profile?.account_type === 'label') dest = '/label';
+      }
+      router.push(dest);
     }
   }
 

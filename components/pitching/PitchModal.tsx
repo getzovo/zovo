@@ -12,37 +12,66 @@ interface Release {
   cover_art_url: string | null
 }
 
+interface CatalogCache {
+  full_catalog: Release[]
+}
+
+interface RosterEntry {
+  claimed: boolean
+  artist_id: string | null
+  profile: {
+    artist_name: string | null
+    catalog_cache: CatalogCache | null
+  } | null
+}
+
 interface Props {
   curator: Curator
   onClose: () => void
+  isManager?: boolean
 }
 
-export default function PitchModal({ curator, onClose }: Props) {
+export default function PitchModal({ curator, onClose, isManager }: Props) {
   const router = useRouter()
-  const [releases, setReleases] = useState<Release[]>([])
-  const [loadingReleases, setLoadingReleases] = useState(true)
-  const [fetchError, setFetchError] = useState<string | null>(null)
+
+  // Shared state
+  const [releases, setReleases]       = useState<Release[]>([])
+  const [loadingReleases, setLoadingReleases] = useState(!isManager)
+  const [fetchError, setFetchError]   = useState<string | null>(null)
   const [selectedIndex, setSelectedIndex] = useState<string>('')
   const [manualTitle, setManualTitle] = useState('')
   const [manualArtist, setManualArtist] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [pitch, setPitch] = useState<string | null>(null)
-  const [pitchId, setPitchId] = useState<string | null>(null)
+  const [generating, setGenerating]   = useState(false)
+  const [pitch, setPitch]             = useState<string | null>(null)
+  const [pitchId, setPitchId]         = useState<string | null>(null)
   const [generateError, setGenerateError] = useState(false)
   const [pitchLimitReached, setPitchLimitReached] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [sent, setSent] = useState(false)
+  const [copied, setCopied]           = useState(false)
+  const [sending, setSending]         = useState(false)
+  const [sent, setSent]               = useState(false)
   const pitchRef = useRef<HTMLDivElement>(null)
 
-  const selectedRelease = selectedIndex !== '' ? releases[Number(selectedIndex)] ?? null : null
-  const showManual = !loadingReleases && releases.length === 0
-  const canGenerate = !generating && (
-    selectedRelease !== null ||
-    (manualTitle.trim().length > 0 && manualArtist.trim().length > 0)
+  // Manager-only state
+  const [roster, setRoster]           = useState<RosterEntry[]>([])
+  const [loadingRoster, setLoadingRoster] = useState(!!isManager)
+  const [selectedArtistId, setSelectedArtistId] = useState<string | null>(null)
+
+  const selectedRelease  = selectedIndex !== '' ? releases[Number(selectedIndex)] ?? null : null
+  const selectedArtist   = isManager ? roster.find(e => e.artist_id === selectedArtistId) ?? null : null
+  const selectedArtistName = selectedArtist?.profile?.artist_name ?? null
+
+  const showManual = isManager
+    ? !loadingRoster && selectedArtistId !== null && releases.length === 0
+    : !loadingReleases && releases.length === 0
+
+  const canGenerate = !generating && (isManager
+    ? selectedArtistId !== null && (selectedRelease !== null || (showManual && manualTitle.trim().length > 0))
+    : selectedRelease !== null || (showManual && manualTitle.trim().length > 0 && manualArtist.trim().length > 0)
   )
 
+  // Artist path: fetch Spotify catalog on mount
   useEffect(() => {
+    if (isManager) return
     fetch('/api/spotify/artist-stats')
       .then(async (r) => {
         const data = await r.json()
@@ -61,7 +90,29 @@ export default function PitchModal({ curator, onClose }: Props) {
         setFetchError('Connect your Spotify account in Settings to load your releases.')
         setLoadingReleases(false)
       })
-  }, [])
+  }, [isManager])
+
+  // Manager path: fetch roster on mount
+  useEffect(() => {
+    if (!isManager) return
+    fetch('/api/roster/artists')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: RosterEntry[]) => {
+        setRoster(data.filter(e => e.claimed && e.artist_id && e.profile))
+      })
+      .catch(() => {})
+      .finally(() => setLoadingRoster(false))
+  }, [isManager])
+
+  // When selected artist changes, load their catalog
+  useEffect(() => {
+    if (!isManager || !selectedArtistId) return
+    setSelectedIndex('')
+    setPitch(null)
+    const artist = roster.find(e => e.artist_id === selectedArtistId)
+    const catalog = artist?.profile?.catalog_cache?.full_catalog ?? []
+    setReleases(catalog)
+  }, [isManager, selectedArtistId, roster])
 
   useEffect(() => {
     if (pitch && pitchRef.current) {
@@ -70,9 +121,7 @@ export default function PitchModal({ curator, onClose }: Props) {
   }, [pitch])
 
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose()
-    }
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
@@ -85,9 +134,13 @@ export default function PitchModal({ curator, onClose }: Props) {
     setPitchId(null)
     setSent(false)
 
+    const artistNameOverride = isManager
+      ? (selectedArtistName ?? undefined)
+      : (showManual ? manualArtist.trim() : undefined)
+
     const releasePayload = selectedRelease
       ? { releaseName: selectedRelease.name, releaseType: selectedRelease.type, releaseDate: selectedRelease.year }
-      : { releaseName: manualTitle.trim(), releaseType: 'release', artistNameOverride: manualArtist.trim() }
+      : { releaseName: manualTitle.trim(), releaseType: 'release' }
 
     try {
       const res = await fetch('/api/pitches/generate', {
@@ -99,6 +152,8 @@ export default function PitchModal({ curator, onClose }: Props) {
           playlistName: curator.playlist_name,
           curatorNotes: curator.notes ?? '',
           genreTags: curator.genre_tags ?? [],
+          artistNameOverride,
+          artistId: isManager ? selectedArtistId : undefined,
           ...releasePayload,
         }),
       })
@@ -133,68 +188,67 @@ export default function PitchModal({ curator, onClose }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pitchId, curatorId: curator.id }),
       })
-      if (res.ok) {
-        setSent(true)
-        router.refresh()
-      }
+      if (res.ok) { setSent(true); router.refresh() }
     } finally {
       setSending(false)
     }
+  }
+
+  const inputStyle: React.CSSProperties = {
+    fontFamily: "'DM Sans', sans-serif", fontSize: 14,
+    color: '#F5F5F0', backgroundColor: '#111111',
+    border: '1px solid #1A1A1A', borderRadius: 8,
+    padding: '10px 14px', width: '100%',
+    outline: 'none', boxSizing: 'border-box',
+  }
+  const labelStyle: React.CSSProperties = {
+    fontFamily: "'DM Mono', monospace", fontSize: 9,
+    letterSpacing: '0.12em', textTransform: 'uppercase',
+    color: '#8A8786', display: 'block', marginBottom: 5,
   }
 
   return (
     <div
       onClick={onClose}
       style={{
-        position: 'fixed',
-        inset: 0,
+        position: 'fixed', inset: 0,
         backgroundColor: 'rgba(17, 16, 16, 0.45)',
-        zIndex: 200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
+        zIndex: 200, display: 'flex',
+        alignItems: 'center', justifyContent: 'center', padding: 24,
       }}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          backgroundColor: '#111111',
-          border: '1px solid #1A1A1A',
-          borderRadius: 10,
-          padding: 28,
-          width: '100%',
-          maxWidth: 480,
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 24,
+          backgroundColor: '#111111', border: '1px solid #1A1A1A',
+          borderRadius: 10, padding: 28, width: '100%', maxWidth: 480,
+          maxHeight: '90vh', overflowY: 'auto',
+          display: 'flex', flexDirection: 'column', gap: 24,
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{
-            fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
-            fontWeight: 400,
-            fontSize: 26,
-            letterSpacing: '0.02em',
-            color: '#F5F5F0',
-          }}>
-            Generate a Pitch
-          </span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <span style={{
+              fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+              fontWeight: 400, fontSize: 26, letterSpacing: '0.02em', color: '#F5F5F0', display: 'block',
+            }}>
+              Generate a Pitch
+            </span>
+            {isManager && selectedArtistName && (
+              <span style={{
+                fontFamily: "'DM Mono', monospace", fontSize: 10,
+                letterSpacing: '0.08em', textTransform: 'uppercase',
+                color: '#8A8786', display: 'block', marginTop: 4,
+              }}>
+                Pitching on behalf of: <span style={{ color: '#FF4500' }}>{selectedArtistName}</span>
+              </span>
+            )}
+          </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: '#8A8786',
-              padding: 4,
-              display: 'flex',
-              alignItems: 'center',
-            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8A8786', padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0 }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path d="M3 3L13 13M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -203,212 +257,102 @@ export default function PitchModal({ curator, onClose }: Props) {
         </div>
 
         {/* Curator summary */}
-        <div style={{
-          backgroundColor: '#0A0A0A',
-          border: '1px solid #1A1A1A',
-          borderRadius: 8,
-          padding: '12px 14px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4,
-        }}>
-          <span style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 9,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color: '#8A8786',
-          }}>
-            Curator
-          </span>
-          <span style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontWeight: 500,
-            fontSize: 14,
-            color: '#F5F5F0',
-          }}>
-            {curator.name}
-          </span>
-          <span style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 13,
-            color: '#8A8786',
-          }}>
-            {curator.playlist_name}
-          </span>
+        <div style={{ backgroundColor: '#0A0A0A', border: '1px solid #1A1A1A', borderRadius: 8, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8786' }}>Curator</span>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 500, fontSize: 14, color: '#F5F5F0' }}>{curator.name}</span>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8A8786' }}>{curator.playlist_name}</span>
         </div>
 
-        {/* Release selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <label style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 10,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color: '#8A8786',
-          }}>
-            Release
-          </label>
-          {fetchError ? (
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 13,
-              color: '#8A8786',
-              margin: 0,
-            }}>
-              {fetchError}
-            </p>
-          ) : (
-            <select
-              value={selectedIndex}
-              disabled={loadingReleases}
-              onChange={(e) => { setSelectedIndex(e.target.value); setPitch(null) }}
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 14,
-                color: selectedIndex === '' ? '#8A8786' : '#F5F5F0',
-                backgroundColor: '#111111',
-                border: '1px solid #1A1A1A',
-                borderRadius: 8,
-                padding: '10px 14px',
-                appearance: 'none',
-                cursor: loadingReleases ? 'wait' : 'pointer',
-                opacity: loadingReleases ? 0.6 : 1,
-              }}
-            >
-              <option value="" disabled>
-                {loadingReleases ? 'Loading releases…' : 'Select a release'}
-              </option>
-              {releases.map((r, i) => (
-                <option key={i} value={String(i)}>
-                  {r.name} ({r.year})
+        {/* Manager: artist selector */}
+        {isManager && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={labelStyle}>Artist</label>
+            {loadingRoster ? (
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8A8786', margin: 0 }}>Loading roster…</p>
+            ) : roster.length === 0 ? (
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8A8786', margin: 0 }}>
+                Add an artist to your roster to start pitching.
+              </p>
+            ) : (
+              <select
+                value={selectedArtistId ?? ''}
+                onChange={e => { setSelectedArtistId(e.target.value || null); setPitch(null) }}
+                style={{ ...inputStyle, color: selectedArtistId ? '#F5F5F0' : '#8A8786', cursor: 'pointer', appearance: 'none' }}
+              >
+                <option value="">Select an artist</option>
+                {roster.map(e => (
+                  <option key={e.artist_id} value={e.artist_id!}>
+                    {e.profile?.artist_name ?? 'Unknown Artist'}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+
+        {/* Release selector — hidden until artist selected (manager), or always shown (artist) */}
+        {(!isManager || selectedArtistId) && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={labelStyle}>Release</label>
+            {fetchError ? (
+              <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8A8786', margin: 0 }}>{fetchError}</p>
+            ) : (
+              <select
+                value={selectedIndex}
+                disabled={loadingReleases}
+                onChange={e => { setSelectedIndex(e.target.value); setPitch(null) }}
+                style={{ ...inputStyle, color: selectedIndex === '' ? '#8A8786' : '#F5F5F0', appearance: 'none', cursor: loadingReleases ? 'wait' : 'pointer', opacity: loadingReleases ? 0.6 : 1 }}
+              >
+                <option value="" disabled>
+                  {loadingReleases ? 'Loading releases…' : 'Select a release'}
                 </option>
-              ))}
-            </select>
-          )}
+                {releases.map((r, i) => (
+                  <option key={i} value={String(i)}>{r.name} ({r.year})</option>
+                ))}
+              </select>
+            )}
 
-          {showManual && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                color: '#8A8786',
-              }}>
-                <div style={{ flex: 1, height: 1, backgroundColor: '#1A1A1A' }} />
-                <span style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 9,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
-                }}>
-                  Or enter manually
-                </span>
-                <div style={{ flex: 1, height: 1, backgroundColor: '#1A1A1A' }} />
+            {showManual && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#8A8786' }}>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#1A1A1A' }} />
+                  <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Or enter manually</span>
+                  <div style={{ flex: 1, height: 1, backgroundColor: '#1A1A1A' }} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Release Title</label>
+                  <input type="text" value={manualTitle} onChange={e => { setManualTitle(e.target.value); setPitch(null) }} placeholder="e.g. Midnight Drive" style={inputStyle} />
+                </div>
+                {!isManager && (
+                  <div>
+                    <label style={labelStyle}>Artist Name</label>
+                    <input type="text" value={manualArtist} onChange={e => { setManualArtist(e.target.value); setPitch(null) }} placeholder="Your artist name" style={inputStyle} />
+                  </div>
+                )}
               </div>
-              <div>
-                <label style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 9,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: '#8A8786',
-                  display: 'block',
-                  marginBottom: 5,
-                }}>
-                  Release Title
-                </label>
-                <input
-                  type="text"
-                  value={manualTitle}
-                  onChange={e => { setManualTitle(e.target.value); setPitch(null) }}
-                  placeholder="e.g. Midnight Drive"
-                  style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 14,
-                    color: '#F5F5F0',
-                    backgroundColor: '#111111',
-                    border: '1px solid #1A1A1A',
-                    borderRadius: 8,
-                    padding: '10px 14px',
-                    width: '100%',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{
-                  fontFamily: "'DM Mono', monospace",
-                  fontSize: 9,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: '#8A8786',
-                  display: 'block',
-                  marginBottom: 5,
-                }}>
-                  Artist Name
-                </label>
-                <input
-                  type="text"
-                  value={manualArtist}
-                  onChange={e => { setManualArtist(e.target.value); setPitch(null) }}
-                  placeholder="Your artist name"
-                  style={{
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 14,
-                    color: '#F5F5F0',
-                    backgroundColor: '#111111',
-                    border: '1px solid #1A1A1A',
-                    borderRadius: 8,
-                    padding: '10px 14px',
-                    width: '100%',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                  }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* Generate button */}
         <button
           disabled={!canGenerate}
           onClick={handleGenerate}
           style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontWeight: 500,
-            fontSize: 14,
-            color: '#F5F5F0',
-            backgroundColor: '#FF4500',
-            border: 'none',
-            borderRadius: 8,
-            padding: '11px 0',
+            fontFamily: "'DM Sans', sans-serif", fontWeight: 500, fontSize: 14,
+            color: '#F5F5F0', backgroundColor: '#FF4500',
+            border: 'none', borderRadius: 8, padding: '11px 0',
             cursor: canGenerate ? 'pointer' : 'not-allowed',
-            opacity: canGenerate ? 1 : 0.4,
-            width: '100%',
-            transition: 'opacity 0.15s',
+            opacity: canGenerate ? 1 : 0.4, width: '100%', transition: 'opacity 0.15s',
           }}
         >
           {generating ? 'Generating…' : 'Generate Pitch'}
         </button>
 
-        <UpgradeModal
-          isOpen={pitchLimitReached}
-          onClose={() => setPitchLimitReached(false)}
-          featureName="Unlimited Pitches"
-        />
+        <UpgradeModal isOpen={pitchLimitReached} onClose={() => setPitchLimitReached(false)} featureName="Unlimited Pitches" />
 
-        {/* Generate error */}
         {generateError && (
-          <p style={{
-            fontFamily: "'DM Sans', sans-serif",
-            fontSize: 13,
-            color: '#FF4500',
-            margin: 0,
-          }}>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#FF4500', margin: 0 }}>
             Something went wrong. Please try again.
           </p>
         )}
@@ -416,67 +360,17 @@ export default function PitchModal({ curator, onClose }: Props) {
         {pitch && (
           <div ref={pitchRef} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{
-                fontFamily: "'DM Mono', monospace",
-                fontSize: 10,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: '#8A8786',
-              }}>
-                Your Pitch
-              </span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8786' }}>Your Pitch</span>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={handleCopy}
-                  style={{
-                    fontFamily: "'DM Mono', monospace",
-                    fontSize: 10,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: copied ? '#8A8786' : '#F5F5F0',
-                    backgroundColor: 'transparent',
-                    border: '1px solid #1A1A1A',
-                    borderRadius: 4,
-                    padding: '4px 10px',
-                    cursor: 'pointer',
-                    transition: 'color 0.15s',
-                  }}
-                >
+                <button onClick={handleCopy} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: copied ? '#8A8786' : '#F5F5F0', backgroundColor: 'transparent', border: '1px solid #1A1A1A', borderRadius: 4, padding: '4px 10px', cursor: 'pointer', transition: 'color 0.15s' }}>
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
-                <button
-                  onClick={handleSend}
-                  disabled={sending || sent}
-                  style={{
-                    fontFamily: "'DM Mono', monospace",
-                    fontSize: 10,
-                    letterSpacing: '0.08em',
-                    textTransform: 'uppercase',
-                    color: sent ? '#8A8786' : '#F5F5F0',
-                    backgroundColor: 'transparent',
-                    border: '1px solid #1A1A1A',
-                    borderRadius: 4,
-                    padding: '4px 10px',
-                    cursor: sending || sent ? 'default' : 'pointer',
-                    opacity: sending ? 0.5 : 1,
-                    transition: 'color 0.15s, opacity 0.15s',
-                  }}
-                >
+                <button onClick={handleSend} disabled={sending || sent} style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, letterSpacing: '0.08em', textTransform: 'uppercase', color: sent ? '#8A8786' : '#F5F5F0', backgroundColor: 'transparent', border: '1px solid #1A1A1A', borderRadius: 4, padding: '4px 10px', cursor: sending || sent ? 'default' : 'pointer', opacity: sending ? 0.5 : 1, transition: 'color 0.15s, opacity 0.15s' }}>
                   {sent ? 'Sent ✓' : sending ? 'Sending…' : 'Send Pitch'}
                 </button>
               </div>
             </div>
-            <div style={{
-              backgroundColor: '#0A0A0A',
-              border: '1px solid #1A1A1A',
-              borderRadius: 8,
-              padding: '14px 16px',
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              color: '#F5F5F0',
-              lineHeight: 1.7,
-              whiteSpace: 'pre-wrap',
-            }}>
+            <div style={{ backgroundColor: '#0A0A0A', border: '1px solid #1A1A1A', borderRadius: 8, padding: '14px 16px', fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#F5F5F0', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
               {pitch}
             </div>
           </div>
