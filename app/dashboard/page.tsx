@@ -1,6 +1,7 @@
+import { cookies, headers } from 'next/headers'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import Link from 'next/link'
 import GenerateReportButton from '@/components/dashboard/GenerateReportButton'
+import DashboardClient from './components/DashboardClient'
 
 const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
 const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER']
@@ -24,44 +25,7 @@ function daysAgo(dateStr: string): string {
   return `${months} months ago`
 }
 
-// ── Spotify ───────────────────────────────────────────────────────────────────
-
-interface SpotifyAlbum {
-  name: string
-  album_type: string
-  release_date: string
-  images: { url: string }[]
-}
-
-let cachedToken: { token: string; expiresAt: number } | null = null
-
-async function getAppToken(): Promise<string | null> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
-    return cachedToken.token
-  }
-  const clientId = process.env.SPOTIFY_CLIENT_ID
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
-  console.log('[dashboard] token req — id present:', !!clientId, 'secret present:', !!clientSecret)
-  const res = await fetch('https://accounts.spotify.com/api/token', {
-    method: 'POST',
-    cache: 'no-store',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-    },
-    body: new URLSearchParams({ grant_type: 'client_credentials' }),
-  })
-  if (!res.ok) {
-    const body = await res.text().catch(() => '')
-    console.error(`[dashboard] token FAIL status=${res.status} body=${body.slice(0, 200)}`)
-    return null
-  }
-  const { access_token, expires_in } = await res.json()
-  cachedToken = { token: access_token, expiresAt: Date.now() + expires_in * 1000 }
-  return access_token
-}
-
-interface Release { name: string; type: string; year: string; cover_art_url: string | null }
+interface Release { name: string; type: string; year: string; release_date: string; cover_art_url: string | null }
 
 interface ArtistStats {
   total_releases: number
@@ -71,106 +35,23 @@ interface ArtistStats {
   full_catalog: Release[]
 }
 
-async function getArtistStats(artistId: string): Promise<ArtistStats | null> {
-  const accessToken = await getAppToken()
-  if (!accessToken) return null
-
-  let albums: SpotifyAlbum[] = []
-  let url: string | null =
-    `https://api.spotify.com/v1/artists/${artistId}/albums` +
-    `?include_groups=album,single&limit=10&market=US`
-
-  while (url) {
-    const res = await fetch(url, {
+async function fetchArtistStats(): Promise<ArtistStats | null> {
+  const cookieHeader = cookies().getAll().map(c => `${c.name}=${c.value}`).join('; ')
+  const host = headers().get('host') ?? 'localhost:3000'
+  const proto = host.startsWith('localhost') ? 'http' : 'https'
+  try {
+    const res = await fetch(`${proto}://${host}/api/spotify/artist-stats`, {
+      headers: { cookie: cookieHeader },
       cache: 'no-store',
-      headers: { Authorization: `Bearer ${accessToken}` },
     })
-    if (!res.ok) {
-      const body = await res.text().catch(() => '')
-      console.error(`[dashboard] albums FAIL status=${res.status} url=${url.slice(0, 80)} body=${body.slice(0, 200)}`)
-      break
-    }
-    const page: { items: SpotifyAlbum[]; next: string | null } = await res.json()
-    albums = [...albums, ...page.items]
-    url = page.next
-  }
-
-  console.log('[dashboard] fetched albums:', albums.length, 'for artist:', artistId)
-  if (albums.length === 0) return null
-
-  albums.sort((a, b) => new Date(b.release_date).getTime() - new Date(a.release_date).getTime())
-
-  const last5 = albums.slice(0, Math.min(5, albums.length))
-  let release_pace: number | null = null
-  if (last5.length >= 2) {
-    const dates = last5.map(a => new Date(a.release_date).getTime())
-    const diffs: number[] = []
-    for (let i = 0; i < dates.length - 1; i++) diffs.push(dates[i] - dates[i + 1])
-    release_pace = Math.round(diffs.reduce((s, d) => s + d, 0) / diffs.length / (1000 * 60 * 60 * 24 * 7))
-  }
-
-  const toRelease = (a: SpotifyAlbum): Release => ({
-    name: a.name,
-    type: a.album_type,
-    year: a.release_date.slice(0, 4),
-    cover_art_url: a.images[0]?.url ?? null,
-  })
-
-  return {
-    total_releases: albums.length,
-    latest_drop: { name: albums[0].name, date: albums[0].release_date },
-    release_pace,
-    recent_releases: last5.map(toRelease),
-    full_catalog: albums.slice(0, 20).map(toRelease),
+    if (!res.ok) return null
+    return res.json()
+  } catch {
+    return null
   }
 }
 
 // ── Components ────────────────────────────────────────────────────────────────
-
-function StatCard({ label, value, subtext }: { label: string; value: string; subtext: string }) {
-  return (
-    <div style={{
-      backgroundColor: 'var(--off-white)',
-      border: '1px solid var(--border)',
-      borderRadius: 8,
-      padding: 20,
-    }}>
-      <div style={{
-        fontFamily: "'DM Mono', monospace",
-        fontSize: 10,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        color: 'var(--ink-muted)',
-        marginBottom: 8,
-      }}>
-        {label}
-      </div>
-      <div style={{
-        fontFamily: "'Fraunces', serif",
-        fontWeight: 500,
-        fontSize: 28,
-        letterSpacing: '-0.02em',
-        color: 'var(--ink)',
-        lineHeight: 1,
-        marginBottom: 6,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
-      }}>
-        {value}
-      </div>
-      <div style={{
-        fontFamily: "'DM Mono', monospace",
-        fontSize: 10,
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        color: 'var(--ink-muted)',
-      }}>
-        {subtext}
-      </div>
-    </div>
-  )
-}
 
 function RecentReleases({ releases }: { releases: Release[] }) {
   return (
@@ -180,7 +61,7 @@ function RecentReleases({ releases }: { releases: Release[] }) {
         fontSize: 10,
         letterSpacing: '0.12em',
         textTransform: 'uppercase',
-        color: 'var(--ink-muted)',
+        color: '#8A8786',
         marginBottom: 16,
       }}>
         Recent Releases
@@ -198,13 +79,13 @@ function RecentReleases({ releases }: { releases: Release[] }) {
                 style={{ borderRadius: 4, flexShrink: 0, objectFit: 'cover' }}
               />
             ) : (
-              <div style={{ width: 40, height: 40, borderRadius: 4, backgroundColor: 'var(--border)', flexShrink: 0 }} />
+              <div style={{ width: 40, height: 40, borderRadius: 4, backgroundColor: '#2A2A2A', flexShrink: 0 }} />
             )}
             <div style={{ minWidth: 0 }}>
               <div style={{
                 fontFamily: "'DM Sans', sans-serif",
                 fontSize: 14,
-                color: 'var(--ink)',
+                color: '#F5F5F0',
                 fontWeight: 500,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -218,14 +99,14 @@ function RecentReleases({ releases }: { releases: Release[] }) {
                   fontSize: 9,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',
-                  color: 'var(--ink-muted)',
-                  backgroundColor: 'var(--border)',
+                  color: '#8A8786',
+                  backgroundColor: '#2A2A2A',
                   padding: '2px 5px',
                   borderRadius: 3,
                 }}>
                   {r.type}
                 </span>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--ink-muted)' }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#8A8786' }}>
                   {r.year}
                 </span>
               </div>
@@ -245,7 +126,7 @@ function DiscographyGrid({ catalog }: { catalog: Release[] }) {
         fontSize: 10,
         letterSpacing: '0.12em',
         textTransform: 'uppercase',
-        color: 'var(--ink-muted)',
+        color: '#8A8786',
         marginBottom: 16,
       }}>
         Discography
@@ -261,12 +142,12 @@ function DiscographyGrid({ catalog }: { catalog: Release[] }) {
                 style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', borderRadius: 6, display: 'block' }}
               />
             ) : (
-              <div style={{ width: '100%', aspectRatio: '1', borderRadius: 6, backgroundColor: 'var(--border)' }} />
+              <div style={{ width: '100%', aspectRatio: '1', borderRadius: 6, backgroundColor: '#2A2A2A' }} />
             )}
             <div style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: 12,
-              color: 'var(--ink)',
+              color: '#F5F5F0',
               fontWeight: 500,
               marginTop: 8,
               overflow: 'hidden',
@@ -275,7 +156,7 @@ function DiscographyGrid({ catalog }: { catalog: Release[] }) {
             }}>
               {r.name}
             </div>
-            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: 'var(--ink-muted)', marginTop: 2 }}>
+            <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#8A8786', marginTop: 2 }}>
               {r.year}
             </div>
           </div>
@@ -293,16 +174,34 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('artist_name, artist_id')
+    .select('artist_name, artist_id, tier')
     .eq('id', user!.id)
     .single()
 
-  const stats = profile?.artist_id ? await getArtistStats(profile.artist_id) : null
+  const stats = profile?.artist_id ? await fetchArtistStats() : null
 
   const now = new Date()
   const dateHeader = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`
   const greeting = getGreeting(now.getHours())
   const artistName = profile?.artist_name ?? ''
+
+  const cards = [
+    {
+      label: 'Releases',
+      value: stats ? String(stats.total_releases) : '--',
+      subtext: 'Total catalog',
+    },
+    {
+      label: 'Latest Drop',
+      value: stats?.latest_drop?.name ?? '--',
+      subtext: stats?.latest_drop ? daysAgo(stats.latest_drop.date) : 'Most recent release',
+    },
+    {
+      label: 'Release Pace',
+      value: stats?.release_pace != null ? `Every ${stats.release_pace}w` : '--',
+      subtext: 'Avg between drops',
+    },
+  ]
 
   return (
     <>
@@ -318,72 +217,17 @@ export default async function DashboardPage() {
       `}</style>
 
       <div style={{ padding: '40px 40px 60px' }}>
-        <div style={{
-          fontFamily: "'DM Mono', monospace",
-          fontSize: 11,
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          color: 'var(--ink-muted)',
-          marginBottom: 10,
-        }}>
-          {dateHeader}
-        </div>
+        <DashboardClient
+          greeting={`${greeting}${artistName ? `, ${artistName}` : ''}`}
+          dateHeader={dateHeader}
+          hasArtistId={!!profile?.artist_id}
+          cards={cards}
+          fullCatalog={(stats?.full_catalog ?? []).map(r => ({ name: r.name, release_date: r.release_date }))}
+          tier={profile?.tier ?? null}
+        />
 
-        <h1 style={{
-          fontFamily: "'Fraunces', serif",
-          fontWeight: 500,
-          fontSize: 32,
-          letterSpacing: '-0.03em',
-          color: 'var(--ink)',
-          lineHeight: 1.2,
-          margin: '0 0 32px',
-        }}>
-          {greeting}{artistName ? `, ${artistName}` : ''}.
-        </h1>
-
-        {!profile?.artist_id ? (
-          <div style={{ textAlign: 'center', padding: '40px 0' }}>
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              color: 'var(--ink-muted)',
-              margin: '0 0 6px',
-            }}>
-              Add your Spotify artist URL to see your catalog stats
-            </p>
-            <Link
-              href="/dashboard/settings"
-              style={{
-                fontFamily: "'DM Sans', sans-serif",
-                fontSize: 14,
-                color: 'var(--ink)',
-                textDecoration: 'underline',
-                textUnderlineOffset: 3,
-              }}
-            >
-              Go to Settings →
-            </Link>
-          </div>
-        ) : (
+        {profile?.artist_id && (
           <>
-            <div className="stat-grid" style={{ marginBottom: 20 }}>
-              <StatCard
-                label="Releases"
-                value={stats ? String(stats.total_releases) : '--'}
-                subtext="Total catalog"
-              />
-              <StatCard
-                label="Latest Drop"
-                value={stats?.latest_drop?.name ?? '--'}
-                subtext={stats?.latest_drop ? daysAgo(stats.latest_drop.date) : 'Most recent release'}
-              />
-              <StatCard
-                label="Release Pace"
-                value={stats?.release_pace != null ? `Every ${stats.release_pace}w` : '--'}
-                subtext="Avg between drops"
-              />
-            </div>
-
             <div style={{ marginBottom: 40 }}>
               <GenerateReportButton />
             </div>

@@ -3,28 +3,27 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Wordmark from '@/components/wordmark';
 import { createClient } from '@/lib/supabase';
 
 const label: React.CSSProperties = {
   fontFamily: "'DM Mono', monospace",
-  fontSize: 10,
-  letterSpacing: '0.12em',
+  fontSize: 11,
+  letterSpacing: '0.1em',
   textTransform: 'uppercase',
-  color: 'var(--ink-muted)',
+  color: '#8A8786',
   display: 'block',
   marginBottom: 6,
 };
 
 const input: React.CSSProperties = {
   width: '100%',
-  border: '1px solid var(--border)',
-  background: '#fff',
-  padding: '12px 16px',
+  background: '#111111',
+  border: '1px solid #2A2A2A',
+  padding: '14px 16px',
   borderRadius: 8,
   fontFamily: "'DM Sans', sans-serif",
   fontSize: 15,
-  color: 'var(--ink)',
+  color: '#F5F5F0',
   outline: 'none',
   boxSizing: 'border-box',
 };
@@ -55,35 +54,42 @@ export default function Login() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: 'var(--warm-white)',
+      backgroundColor: '#0A0A0A',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '40px 24px',
+      padding: '48px 24px 40px',
     }}>
-      <div style={{ marginBottom: 40 }}>
-        <Wordmark size="md" />
+      <div style={{ textAlign: 'center', marginBottom: 40 }}>
+        <span style={{
+          fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+          fontSize: 32,
+          color: '#F5F5F0',
+          letterSpacing: '0.05em',
+        }}>
+          ZOVO<span style={{ color: '#FF4500' }}>.</span>
+        </span>
       </div>
 
       <div style={{ width: '100%', maxWidth: 400 }}>
         <h1 style={{
-          fontFamily: "'Fraunces', serif",
-          fontWeight: 500,
-          fontSize: 36,
-          letterSpacing: '-0.03em',
-          color: 'var(--ink)',
-          lineHeight: 1.2,
+          fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+          fontWeight: 400,
+          fontSize: 40,
+          letterSpacing: '0.02em',
+          color: '#F5F5F0',
+          lineHeight: 1.1,
           margin: '0 0 8px',
           textAlign: 'center',
         }}>
-          Welcome back.
+          WELCOME BACK.
         </h1>
 
         <p style={{
           fontFamily: "'DM Sans', sans-serif",
-          fontSize: 15,
-          color: 'var(--ink-muted)',
+          fontSize: 16,
+          color: '#8A8786',
           margin: '0 0 32px',
           textAlign: 'center',
         }}>
@@ -119,7 +125,7 @@ export default function Login() {
             <p style={{
               fontFamily: "'DM Sans', sans-serif",
               fontSize: 14,
-              color: '#cc0000',
+              color: '#FF4444',
               margin: 0,
             }}>
               {error}
@@ -131,12 +137,12 @@ export default function Login() {
             disabled={loading}
             style={{
               width: '100%',
-              background: '#111010',
-              color: '#fff',
+              background: '#FF4500',
+              color: '#F5F5F0',
               fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              fontWeight: 500,
-              padding: '14px',
+              fontSize: 15,
+              fontWeight: 600,
+              padding: '16px',
               borderRadius: 8,
               border: 'none',
               cursor: loading ? 'default' : 'pointer',
@@ -150,12 +156,12 @@ export default function Login() {
         <p style={{
           fontFamily: "'DM Sans', sans-serif",
           fontSize: 14,
-          color: 'var(--ink-muted)',
+          color: '#8A8786',
           textAlign: 'center',
           marginTop: 24,
         }}>
           Don&apos;t have an account?{' '}
-          <Link href="/signup" style={{ color: 'var(--ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          <Link href="/signup" style={{ color: '#F5F5F0', textDecoration: 'underline', textUnderlineOffset: 3 }}>
             Sign up
           </Link>
         </p>

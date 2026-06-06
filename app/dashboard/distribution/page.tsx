@@ -12,24 +12,25 @@ export default async function DistributionPage() {
   return (
     <div style={{ padding: '40px 40px 60px' }}>
       <h1 style={{
-        fontFamily: "'Fraunces', serif",
-        fontWeight: 500,
-        fontSize: 32,
-        letterSpacing: '-0.03em',
-        color: 'var(--ink)',
-        lineHeight: 1.2,
-        margin: '0 0 8px',
+        fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+        fontWeight: 400,
+        fontSize: 56,
+        letterSpacing: '0.02em',
+        color: '#F5F5F0',
+        lineHeight: 1,
+        margin: '0 0 10px',
       }}>
-        Distribution
+        Submit Your Release
       </h1>
       <p style={{
         fontFamily: "'DM Sans', sans-serif",
         fontSize: 15,
-        color: 'var(--ink-muted)',
-        margin: '0 0 32px',
+        color: '#8A8786',
+        margin: 0,
       }}>
-        Submit your music for distribution.
+        Drop your details. We handle the rest.
       </p>
+      <div style={{ height: 1, backgroundColor: '#1A1A1A', margin: '24px 0 32px' }} />
 
       <DistributionForm artistName={profile?.artist_name ?? ''} />
     </div>

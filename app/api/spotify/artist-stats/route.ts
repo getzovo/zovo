@@ -138,6 +138,7 @@ export async function GET() {
     name: a.name,
     type: a.album_type,
     year: a.release_date.slice(0, 4),
+    release_date: a.release_date,
     cover_art_url: a.images[0]?.url ?? null,
   })
 

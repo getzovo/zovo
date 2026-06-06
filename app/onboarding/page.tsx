@@ -2,42 +2,41 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Wordmark from '@/components/wordmark';
 import { createClient } from '@/lib/supabase';
 
 // ── Shared style tokens ──────────────────────────────────────────────────────
 
 const monoLabel: React.CSSProperties = {
   fontFamily: "'DM Mono', monospace",
-  fontSize: 10,
-  letterSpacing: '0.12em',
+  fontSize: 11,
+  letterSpacing: '0.1em',
   textTransform: 'uppercase',
-  color: 'var(--ink-muted)',
+  color: '#8A8786',
   display: 'block',
   marginBottom: 6,
 };
 
 const fieldInput: React.CSSProperties = {
   width: '100%',
-  border: '1px solid var(--border)',
-  background: '#fff',
-  padding: '12px 16px',
+  background: '#111111',
+  border: '1px solid #2A2A2A',
+  padding: '14px 16px',
   borderRadius: 8,
   fontFamily: "'DM Sans', sans-serif",
   fontSize: 15,
-  color: 'var(--ink)',
+  color: '#F5F5F0',
   outline: 'none',
   boxSizing: 'border-box',
 };
 
 const btnPrimary: React.CSSProperties = {
   width: '100%',
-  background: '#111010',
-  color: '#fff',
+  background: '#FF4500',
+  color: '#F5F5F0',
   fontFamily: "'DM Sans', sans-serif",
-  fontSize: 14,
-  fontWeight: 500,
-  padding: '14px',
+  fontSize: 15,
+  fontWeight: 600,
+  padding: '16px',
   borderRadius: 8,
   border: 'none',
   cursor: 'pointer',
@@ -45,21 +44,21 @@ const btnPrimary: React.CSSProperties = {
 
 const btnOutlined: React.CSSProperties = {
   width: '100%',
-  background: '#fff',
-  color: '#111010',
+  background: '#111111',
+  color: '#F5F5F0',
   fontFamily: "'DM Sans', sans-serif",
-  fontSize: 14,
+  fontSize: 15,
   fontWeight: 500,
-  padding: '14px',
+  padding: '16px',
   borderRadius: 8,
-  border: '1px solid #111010',
+  border: '1px solid #2A2A2A',
   cursor: 'pointer',
 };
 
 const skipLink: React.CSSProperties = {
   fontFamily: "'DM Sans', sans-serif",
   fontSize: 13,
-  color: 'var(--ink-muted)',
+  color: '#8A8786',
   textAlign: 'center',
   marginTop: 12,
   display: 'block',
@@ -72,21 +71,30 @@ const skipLink: React.CSSProperties = {
 };
 
 const heading: React.CSSProperties = {
-  fontFamily: "'Fraunces', serif",
-  fontWeight: 500,
-  fontSize: 32,
-  letterSpacing: '-0.03em',
-  color: 'var(--ink)',
-  lineHeight: 1.2,
+  fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+  fontWeight: 400,
+  fontSize: 48,
+  color: '#F5F5F0',
+  lineHeight: 1.1,
   margin: '0 0 12px',
+  letterSpacing: '0.02em',
 };
 
 const subtext: React.CSSProperties = {
   fontFamily: "'DM Sans', sans-serif",
-  fontSize: 15,
-  color: 'var(--ink-muted)',
+  fontSize: 16,
+  color: '#8A8786',
   margin: '0 0 32px',
   lineHeight: 1.6,
+};
+
+const cornerText: React.CSSProperties = {
+  fontFamily: "'DM Mono', monospace",
+  fontSize: 11,
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase',
+  color: '#8A8786',
+  position: 'fixed',
 };
 
 const GENRES = [
@@ -94,35 +102,13 @@ const GENRES = [
   'Latin', 'Indie', 'Electronic', 'Rock', 'Other',
 ];
 
-// ── Progress dots ─────────────────────────────────────────────────────────────
-
-function ProgressDots({ current, total }: { current: number; total: number }) {
-  return (
-    <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 48 }}>
-      {Array.from({ length: total }).map((_, i) => {
-        const stepNum = i + 1;
-        const isComplete = stepNum < current;
-        const isCurrent = stepNum === current;
-        return (
-          <div
-            key={i}
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              background: isCurrent
-                ? '#E8440A'
-                : isComplete
-                  ? '#111010'
-                  : 'var(--border)',
-              transition: 'background 0.2s',
-            }}
-          />
-        );
-      })}
-    </div>
-  );
-}
+const BOTTOM_RIGHT_LABELS: Record<number, string> = {
+  1: 'YOUR ARTIST PROFILE',
+  2: 'SPOTIFY CONNECT',
+  3: 'CHOOSE YOUR PLAN',
+  4: 'DISTRIBUTION SETUP',
+  5: "YOU'RE IN.",
+};
 
 // ── Step 1 — Tell us about yourself ──────────────────────────────────────────
 
@@ -182,7 +168,7 @@ function Step1({
         </select>
       </div>
       {error && (
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#cc0000', margin: 0 }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#FF4444', margin: 0 }}>
           {error}
         </p>
       )}
@@ -191,7 +177,7 @@ function Step1({
         disabled={loading}
         style={{ ...btnPrimary, opacity: loading ? 0.7 : 1, cursor: loading ? 'default' : 'pointer' }}
       >
-        {loading ? 'Saving…' : 'Continue'}
+        {loading ? 'Saving…' : 'Set my artist name'}
       </button>
     </div>
   );
@@ -223,7 +209,6 @@ function Step2({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
     const { error: dbError } = await supabase
       .from('profiles')
       .upsert({ id: user.id, artist_id: artistId }, { onConflict: 'id' });
-    console.log('[onboarding step2] artist_id save error:', dbError?.message ?? null);
     if (dbError) { setError(dbError.message); setLoading(false); return; }
     onNext();
   }
@@ -246,7 +231,7 @@ function Step2({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
         />
       </div>
       {error && (
-        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#cc0000', margin: 0 }}>
+        <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#FF4444', margin: 0 }}>
           {error}
         </p>
       )}
@@ -255,7 +240,7 @@ function Step2({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
         disabled={loading}
         style={{ ...btnPrimary, opacity: loading ? 0.7 : 1, cursor: loading ? 'default' : 'pointer' }}
       >
-        {loading ? 'Saving…' : 'Continue'}
+        {loading ? 'Saving…' : 'Connect Spotify'}
       </button>
       <button onClick={onSkip} style={skipLink}>Skip for now</button>
     </div>
@@ -287,10 +272,10 @@ function PlanCard({
     <div
       style={{
         flex: 1,
-        border: featured ? '2px solid #111010' : '1px solid var(--border)',
+        border: featured ? '2px solid #FF4500' : '1px solid #2A2A2A',
         borderRadius: 12,
         padding: '24px 20px',
-        background: '#fff',
+        background: '#111111',
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
@@ -303,8 +288,8 @@ function PlanCard({
           top: -12,
           left: '50%',
           transform: 'translateX(-50%)',
-          background: '#111010',
-          color: '#fff',
+          background: '#FF4500',
+          color: '#F5F5F0',
           fontFamily: "'DM Mono', monospace",
           fontSize: 9,
           letterSpacing: '0.12em',
@@ -322,17 +307,16 @@ function PlanCard({
           fontSize: 10,
           letterSpacing: '0.12em',
           textTransform: 'uppercase',
-          color: 'var(--ink-muted)',
+          color: '#8A8786',
           marginBottom: 6,
         }}>
           {name}
         </div>
         <div style={{
-          fontFamily: "'Fraunces', serif",
+          fontFamily: "'DM Sans', sans-serif",
           fontWeight: 500,
           fontSize: 26,
-          color: 'var(--ink)',
-          letterSpacing: '-0.02em',
+          color: '#F5F5F0',
         }}>
           {price}
         </div>
@@ -342,11 +326,11 @@ function PlanCard({
           <li key={f} style={{
             fontFamily: "'DM Sans', sans-serif",
             fontSize: 13,
-            color: 'var(--ink-soft)',
+            color: '#8A8786',
             paddingLeft: 16,
             position: 'relative',
           }}>
-            <span style={{ position: 'absolute', left: 0, color: '#E8440A' }}>·</span>
+            <span style={{ position: 'absolute', left: 0, color: '#FF4500' }}>·</span>
             {f}
           </li>
         ))}
@@ -366,13 +350,10 @@ function Step3({ onFree, onPaid }: { onFree: () => void; onPaid: (priceId: strin
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
 
   async function handleFree() {
-    console.log('handleFree called');
     setLoadingPlan('free');
     try {
       await onFree();
-      console.log('onFree completed');
-    } catch (err) {
-      console.error('onFree error:', err);
+    } catch {
       setLoadingPlan(null);
     }
   }
@@ -459,7 +440,7 @@ function Step4({ headline, subline }: { headline: string; subline: string }) {
         disabled={loading}
         style={{ ...btnPrimary, opacity: loading ? 0.7 : 1, cursor: loading ? 'default' : 'pointer' }}
       >
-        {loading ? 'Loading…' : 'Go to dashboard'}
+        {loading ? 'Loading…' : 'Go to my dashboard'}
       </button>
     </div>
   );
@@ -476,28 +457,23 @@ function OnboardingFlow() {
   // Honour ?step= from Stripe redirect
   useEffect(() => {
     const s = Number(searchParams.get('step'));
-    if (s >= 1 && s <= 4) setStep(s);
+    if (s >= 1 && s <= 5) setStep(s);
   }, [searchParams]);
 
   function next() {
-    setStep(s => Math.min(s + 1, 4));
+    setStep(s => Math.min(s + 1, 5));
   }
 
   async function handleFree() {
-    console.log('onFree called');
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    console.log('onFree user:', user?.id ?? null);
-    if (!user) {
-      console.error('onFree: no user session');
-      return;
-    }
+    if (!user) return;
     const { error } = await supabase
       .from('profiles')
       .upsert({ id: user.id, tier: 'free', onboarding_complete: true }, { onConflict: 'id' });
-    console.log('onFree upsert error:', error);
+    if (error) throw error;
     setCompletedPlan('free');
-    setStep(4);
+    setStep(5);
   }
 
   async function handlePaid(priceId: string) {
@@ -513,9 +489,9 @@ function OnboardingFlow() {
     if (url) window.location.href = url;
   }
 
-  // Runs when step 4 mounts — handles both free (already set) and Stripe redirect path
+  // Runs when step 5 mounts — handles both free (already set) and Stripe redirect path
   useEffect(() => {
-    if (step === 4) {
+    if (step === 5) {
       (async () => {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
@@ -534,33 +510,48 @@ function OnboardingFlow() {
             .update({ onboarding_complete: true })
             .eq('id', user.id);
         }
+        // Seed Spotify cache so the dashboard has data on first load
+        fetch('/api/email/onboarding-complete', { method: 'POST' }).catch(() => {})
       })();
     }
   }, [step]);
 
+  const stepCounter = `${String(step).padStart(2, '0')} / 05`;
+
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: 'var(--warm-white)',
+      backgroundColor: '#0A0A0A',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '40px 24px',
+      padding: '48px 24px 40px',
     }}>
-      <div style={{ width: '100%', maxWidth: step === 3 ? 800 : 480 }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 40 }}>
-          <Wordmark size="sm" />
-        </div>
+      {/* Corner labels */}
+      <div style={{ ...cornerText, top: 24, left: 24 }}>Onboarding</div>
+      <div style={{ ...cornerText, top: 24, right: 24 }}>{stepCounter}</div>
+      <div style={{ ...cornerText, bottom: 24, left: 24 }}>ZOVO — 2026</div>
+      <div style={{ ...cornerText, bottom: 24, right: 24 }}>{BOTTOM_RIGHT_LABELS[step]}</div>
 
-        <ProgressDots current={step} total={4} />
+      <div style={{ width: '100%', maxWidth: step === 3 ? 800 : 480 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 48 }}>
+          <span style={{
+            fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif',
+            fontSize: 32,
+            color: '#F5F5F0',
+            letterSpacing: '0.05em',
+          }}>
+            ZOVO<span style={{ color: '#FF4500' }}>.</span>
+          </span>
+        </div>
 
         {step === 1 && (
           <Step1 onNext={() => next()} />
         )}
         {step === 2 && <Step2 onNext={next} onSkip={next} />}
         {step === 3 && <Step3 onFree={handleFree} onPaid={handlePaid} />}
-        {step === 4 && (
+        {step === 5 && (
           <Step4
             headline={
               completedPlan === 'artist' ? "You're in. Your Artist account is active." :
