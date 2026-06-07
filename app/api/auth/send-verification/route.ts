@@ -10,8 +10,11 @@ function adminClient() {
 }
 
 export async function POST(req: Request) {
+  console.log('[send-verification] route hit')
   const { email, userId, type = 'signup' } = await req.json()
+  console.log('[send-verification] email:', email, 'userId:', userId, 'hasResendKey:', !!process.env.RESEND_API_KEY)
   if (!email || !userId) {
+    console.log('[send-verification] missing email or userId')
     return NextResponse.json({ error: 'email and userId required' }, { status: 400 })
   }
 
@@ -32,8 +35,10 @@ export async function POST(req: Request) {
     .insert({ email, code, type, user_id: userId, expires_at })
 
   if (insertError) {
+    console.error('[send-verification] insert error:', JSON.stringify(insertError))
     return NextResponse.json({ error: 'Failed to create code' }, { status: 500 })
   }
+  console.log('[send-verification] code inserted ok')
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -110,9 +115,10 @@ export async function POST(req: Request) {
   })
 
   if (emailError) {
-    console.error('Resend verification email error:', emailError)
+    console.error('[send-verification] Resend error:', JSON.stringify(emailError))
     return NextResponse.json({ error: 'Failed to send email' }, { status: 500 })
   }
+  console.log('[send-verification] email sent ok')
 
   return NextResponse.json({ ok: true })
 }
