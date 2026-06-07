@@ -481,6 +481,17 @@ function OnboardingFlow() {
   const [completedPlan, setCompletedPlan] = useState<'free' | 'artist' | 'pro' | null>(null);
   const [initialLabelName, setInitialLabelName] = useState('');
   const [inviteToken, setInviteToken] = useState('');
+  const [labelMember, setLabelMember] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      supabase.from('profiles').select('label_member').eq('id', user.id).single().then(({ data }) => {
+        if (data?.label_member) setLabelMember(true);
+      });
+    });
+  }, []);
 
   // Honour ?step= from Stripe redirect; ?type= pre-selects account type and skips Step 0
   useEffect(() => {
@@ -521,18 +532,22 @@ function OnboardingFlow() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Stripe bypass: skip checkout for label plans when Stripe is not live
-    if (process.env.NEXT_PUBLIC_STRIPE_LIVE !== 'true' && accountType === 'label') {
+    const isLabelStripeBypass = process.env.NEXT_PUBLIC_STRIPE_LIVE !== 'true' && accountType === 'label';
+    if (isLabelStripeBypass || labelMember) {
+      const tier = accountType === 'manager' ? 'manager' : accountType === 'label' ? 'label' : 'pro';
+      const dest = accountType === 'label' ? '/label' : '/dashboard';
       await supabase.from('profiles').upsert(
-        { id: user.id, tier: 'label', onboarding_complete: true, account_type: 'label' },
+        { id: user.id, tier, onboarding_complete: true, account_type: accountType },
         { onConflict: 'id' },
       );
-      fetch('/api/email/welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: user.email }),
-      }).catch(() => {});
-      window.location.href = '/label';
+      if (isLabelStripeBypass) {
+        fetch('/api/email/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email }),
+        }).catch(() => {});
+      }
+      window.location.href = dest;
       return;
     }
 

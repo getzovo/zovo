@@ -53,6 +53,13 @@ export async function POST(request: Request) {
   const userId = authData.user.id
   const spotifyId = extractSpotifyId(invite.spotify_url)
 
+  const { data: managerProfile } = await admin
+    .from('profiles')
+    .select('label_id')
+    .eq('id', invite.manager_id)
+    .single()
+  const isLabelMember = !!managerProfile?.label_id
+
   const { error: profileUpdateError } = await admin.from('profiles').update({
     artist_name: invite.artist_name ?? null,
     genre: invite.genre ?? null,
@@ -61,6 +68,7 @@ export async function POST(request: Request) {
     account_type: 'artist',
     tier: 'pro',
     claimed: true,
+    label_member: isLabelMember,
   }).eq('id', userId)
 
   if (profileUpdateError) {

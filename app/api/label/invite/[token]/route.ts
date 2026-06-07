@@ -66,7 +66,7 @@ export async function POST(_: Request, { params }: { params: { token: string } }
   await Promise.all([
     admin
       .from('profiles')
-      .upsert({ id: user.id, label_id: label.owner_user_id, account_type: 'manager', onboarding_complete: true }, { onConflict: 'id' }),
+      .upsert({ id: user.id, label_id: label.owner_user_id, account_type: 'manager', tier: 'manager', label_member: true, onboarding_complete: true }, { onConflict: 'id' }),
     admin
       .from('label_invites')
       .update({ status: 'accepted', accepted_at: now })
