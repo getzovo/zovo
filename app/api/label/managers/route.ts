@@ -41,13 +41,20 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  const { data: managers } = await adminClient
-    .from('profiles')
-    .select('id, artist_name, created_at')
-    .eq('label_id', user.id)
-    .eq('account_type', 'manager')
+  const [{ data: managers }, { data: labelRow }] = await Promise.all([
+    adminClient
+      .from('profiles')
+      .select('id, artist_name, created_at')
+      .eq('label_id', user.id)
+      .eq('account_type', 'manager'),
+    supabase
+      .from('labels')
+      .select('name')
+      .eq('owner_user_id', user.id)
+      .single(),
+  ])
 
-  const labelName = labelProfile?.artist_name ?? 'Your Label'
+  const labelName = labelRow?.name ?? labelProfile?.artist_name ?? 'Your Label'
 
   if (!managers || managers.length === 0) {
     return NextResponse.json({

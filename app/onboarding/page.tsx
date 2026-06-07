@@ -585,8 +585,8 @@ function OnboardingFlow() {
         </div>
 
         {step === 1 && <Step0 onSelect={handleAccountType} />}
-        {step === 2 && <Step1 onNext={() => next()} accountType={accountType} initialName={initialLabelName} />}
-        {step === 3 && <Step2 onNext={next} onSkip={next} />}
+        {step === 2 && <Step1 onNext={() => accountType === 'label' ? setStep(4) : next()} accountType={accountType} initialName={initialLabelName} />}
+        {step === 3 && accountType !== 'label' && <Step2 onNext={next} onSkip={next} />}
         {step === 4 && <Step3 onFree={handleFree} onPaid={handlePaid} accountType={accountType} />}
         {step === 6 && (
           <Step5
