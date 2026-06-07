@@ -249,7 +249,7 @@ function Step1({ onNext, accountType, initialName = '' }: { onNext: (data: { art
     }
 
     const { error: dbError } = await supabase
-      .from('profiles').update(profileUpdate).eq('id', user.id);
+      .from('profiles').upsert({ id: user.id, ...profileUpdate }, { onConflict: 'id' });
     if (dbError) { setError(dbError.message); setLoading(false); return; }
 
     if (isLabel) {

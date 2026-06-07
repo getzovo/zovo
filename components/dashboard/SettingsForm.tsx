@@ -169,7 +169,7 @@ interface Props {
   spotifyDisplayName: string | null
 }
 
-export default function SettingsForm({ userId, email, artistName, genre, tier, spotifyDisplayName }: Props) {
+export default function SettingsForm({ userId, email, artistName, genre, tier, accountType, spotifyDisplayName }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -201,10 +201,9 @@ export default function SettingsForm({ userId, email, artistName, genre, tier, s
   async function handleSaveProfile() {
     setSaving(true)
     setSaveStatus('idle')
-    const { error } = await supabase
-      .from('profiles')
-      .update({ artist_name: name.trim(), genre: genreVal.trim() })
-      .eq('id', userId)
+    const update: Record<string, string> = { artist_name: name.trim() }
+    if (accountType !== 'label') update.genre = genreVal.trim()
+    const { error } = await supabase.from('profiles').update(update).eq('id', userId)
     setSaving(false)
     setSaveStatus(error ? 'error' : 'saved')
   }
@@ -228,23 +227,27 @@ export default function SettingsForm({ userId, email, artistName, genre, tier, s
         <div style={SECTION_TITLE_STYLE}>Profile</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label style={LABEL_STYLE}>Artist Name</label>
+            <label style={LABEL_STYLE}>
+              {accountType === 'manager' ? 'Manager Name' : accountType === 'label' ? 'Label Name' : 'Artist Name'}
+            </label>
             <input
               style={INPUT_STYLE}
               value={name}
               onChange={e => { setName(e.target.value); setSaveStatus('idle') }}
-              placeholder="Your artist name"
+              placeholder={accountType === 'manager' ? 'Your name' : accountType === 'label' ? 'Your label name' : 'Your artist name'}
             />
           </div>
-          <div>
-            <label style={LABEL_STYLE}>Genre</label>
-            <input
-              style={INPUT_STYLE}
-              value={genreVal}
-              onChange={e => { setGenreVal(e.target.value); setSaveStatus('idle') }}
-              placeholder="e.g. Indie Pop, R&B, Hip-Hop"
-            />
-          </div>
+          {accountType !== 'label' && (
+            <div>
+              <label style={LABEL_STYLE}>Genre</label>
+              <input
+                style={INPUT_STYLE}
+                value={genreVal}
+                onChange={e => { setGenreVal(e.target.value); setSaveStatus('idle') }}
+                placeholder="e.g. Indie Pop, R&B, Hip-Hop"
+              />
+            </div>
+          )}
         </div>
         <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 12 }}>
           <PrimaryButton onClick={handleSaveProfile} loading={saving}>
