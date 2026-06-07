@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase';
 type AccountType = 'artist' | 'manager' | 'label'
 
 const TYPE_COPY: Record<AccountType, { headline: string; sub: string }> = {
-  artist:  { headline: 'CREATE YOUR ARTIST ACCOUNT.', sub: 'Start managing your music career'    },
+  artist:  { headline: 'CREATE YOUR ARTIST ACCOUNT.', sub: 'Start running your music business.'  },
   manager: { headline: 'CREATE YOUR MANAGER ACCOUNT.', sub: 'Start managing your roster'          },
   label:   { headline: 'CREATE YOUR LABEL ACCOUNT.',   sub: 'Start running your label operation'  },
 }
@@ -50,6 +50,7 @@ function SignupForm() {
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
   const [success, setSuccess]     = useState(false);
+  useEffect(() => { setSuccess(false); }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
