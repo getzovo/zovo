@@ -253,15 +253,13 @@ function Step1({ onNext, accountType, initialName = '' }: { onNext: (data: { art
     if (dbError) { setError(dbError.message); setLoading(false); return; }
 
     if (isLabel) {
-      const { data: label, error: labelError } = await supabase
+      const { error: labelError } = await supabase
         .from('labels')
-        .insert({ name: artistName.trim(), owner_user_id: user.id })
-        .select('id')
-        .single();
+        .upsert(
+          { name: artistName.trim(), owner_user_id: user.id },
+          { onConflict: 'owner_user_id' },
+        );
       if (labelError) { setError(labelError.message); setLoading(false); return; }
-      if (label) {
-        await supabase.from('profiles').update({ label_id: label.id }).eq('id', user.id);
-      }
     }
 
     onNext({ artistName: artistName.trim(), genre });

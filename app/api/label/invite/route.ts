@@ -29,7 +29,9 @@ export async function POST(request: Request) {
     .from('labels')
     .select('id, name')
     .eq('owner_user_id', user.id)
-    .single()
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
   if (!label) return NextResponse.json({ error: 'Label not found' }, { status: 404 })
 
   const { data: invite, error: insertError } = await adminClient

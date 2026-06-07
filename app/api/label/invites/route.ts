@@ -25,7 +25,9 @@ export async function GET() {
     .from('labels')
     .select('id')
     .eq('owner_user_id', user.id)
-    .single()
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
   if (!label) return NextResponse.json({ invites: [] })
 
   const { data: invites } = await admin

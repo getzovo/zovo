@@ -47,11 +47,13 @@ export async function GET() {
       .select('id, artist_name, created_at')
       .eq('label_id', user.id)
       .eq('account_type', 'manager'),
-    supabase
+    adminClient
       .from('labels')
       .select('name')
       .eq('owner_user_id', user.id)
-      .single(),
+      .order('created_at', { ascending: true })
+      .limit(1)
+      .maybeSingle(),
   ])
 
   const labelName = labelRow?.name ?? labelProfile?.artist_name ?? 'Your Label'
