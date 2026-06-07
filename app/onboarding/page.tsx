@@ -527,6 +527,11 @@ function OnboardingFlow() {
         { id: user.id, tier: 'label', onboarding_complete: true, account_type: 'label' },
         { onConflict: 'id' },
       );
+      fetch('/api/email/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email }),
+      }).catch(() => {});
       window.location.href = '/label';
       return;
     }
@@ -555,6 +560,11 @@ function OnboardingFlow() {
             onboarding_complete: true,
             ...(accountType && { account_type: accountType }),
           }).eq('id', user.id);
+          fetch('/api/email/welcome', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: user.email }),
+          }).catch(() => {});
         }
         fetch('/api/email/onboarding-complete', { method: 'POST' }).catch(() => {});
       })();

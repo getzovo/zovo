@@ -70,12 +70,6 @@ function SignupForm() {
 
     const userId = authData.user?.id ?? '';
 
-    fetch('/api/email/welcome', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email }),
-    }).catch(() => {});
-
     await fetch('/api/auth/send-verification', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
