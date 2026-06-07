@@ -40,6 +40,7 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const raw = searchParams.get('type');
   const accountType: AccountType | null = raw && ['artist', 'manager', 'label'].includes(raw) ? (raw as AccountType) : null;
+  const inviteToken = searchParams.get('invite');
   const copy = accountType ? TYPE_COPY[accountType] : { headline: 'CREATE YOUR ACCOUNT.', sub: 'Start managing your music career' };
 
   const [email, setEmail]         = useState('');
@@ -60,8 +61,9 @@ function SignupForm() {
     const supabase = createClient();
     const origin = window.location.origin;
     const labelParam = accountType === 'label' ? `&label=${encodeURIComponent(labelName.trim())}` : '';
+    const inviteParam = inviteToken ? `&invite=${inviteToken}` : '';
     const nextPath = accountType
-      ? `/onboarding?type=${accountType}${labelParam}`
+      ? `/onboarding?type=${accountType}${labelParam}${inviteParam}`
       : '/onboarding';
     // emailRedirectTo must go through /auth/callback so exchangeCodeForSession() runs.
     // Supabase appends ?code= to this URL; the callback exchanges it and redirects to `next`.

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 
@@ -28,8 +28,10 @@ const input: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
-export default function Login() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get('invite');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,6 +70,10 @@ export default function Login() {
       setError(authError.message);
       setLoading(false);
     } else {
+      if (inviteToken) {
+        router.push(`/invite/${inviteToken}`);
+        return;
+      }
       let dest = '/dashboard';
       if (user) {
         const { data: profile } = await supabase
@@ -227,4 +233,8 @@ export default function Login() {
       </div>
     </div>
   );
+}
+
+export default function Login() {
+  return <Suspense><LoginForm /></Suspense>;
 }

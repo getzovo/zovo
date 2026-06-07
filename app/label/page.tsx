@@ -26,6 +26,13 @@ interface LabelData {
   stats: LabelStats
 }
 
+interface InviteRow {
+  id: string
+  email: string
+  status: string
+  created_at: string
+}
+
 const STATUS_STYLE: Record<string, { color: string; bg: string; border: string }> = {
   ACTIVE:   { color: '#22C55E', bg: '#22C55E1A', border: '#22C55E33' },
   IDLE:     { color: '#F59E0B', bg: '#F59E0B1A', border: '#F59E0B33' },
@@ -63,6 +70,19 @@ const thStyle: React.CSSProperties = {
 export default function LabelPage() {
   const [data, setData] = useState<LabelData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [invites, setInvites] = useState<InviteRow[]>([])
+  const [showModal, setShowModal] = useState(false)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviting, setInviting] = useState(false)
+  const [inviteSuccess, setInviteSuccess] = useState('')
+  const [inviteError, setInviteError] = useState('')
+
+  const loadInvites = useCallback(() => {
+    fetch('/api/label/invites')
+      .then(r => r.json())
+      .then((d: { invites: InviteRow[] }) => setInvites(d.invites ?? []))
+      .catch(() => {})
+  }, [])
 
   const load = useCallback(() => {
     setLoading(true)
@@ -72,7 +92,28 @@ export default function LabelPage() {
       .catch(() => setLoading(false))
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { load(); loadInvites() }, [load, loadInvites])
+
+  async function handleSendInvite() {
+    if (!inviteEmail.trim()) return
+    setInviting(true)
+    setInviteError('')
+    setInviteSuccess('')
+    const res = await fetch('/api/label/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: inviteEmail.trim() }),
+    })
+    setInviting(false)
+    if (!res.ok) {
+      const d = await res.json()
+      setInviteError(d.error ?? 'Failed to send invite.')
+      return
+    }
+    setInviteSuccess(`Invite sent to ${inviteEmail.trim()}`)
+    setInviteEmail('')
+    loadInvites()
+  }
 
   const managers = data?.managers ?? []
   const stats = data?.stats ?? { total_managers: 0, total_artists: 0, avg_health: 0 }
@@ -171,8 +212,8 @@ export default function LabelPage() {
               No managers added yet. Invite a manager to get started.
             </div>
             <button
-              disabled
-              style={{ backgroundColor: '#FF4500', color: 'white', ...mono(11), textTransform: 'uppercase', letterSpacing: '0.1em', padding: '14px 24px', borderRadius: 6, border: 'none', cursor: 'not-allowed', opacity: 0.6 }}
+              onClick={() => { setShowModal(true); setInviteSuccess(''); setInviteError('') }}
+              style={{ backgroundColor: '#FF4500', color: 'white', ...mono(11), textTransform: 'uppercase', letterSpacing: '0.1em', padding: '14px 24px', borderRadius: 6, border: 'none', cursor: 'pointer' }}
             >
               + INVITE MANAGER
             </button>
@@ -266,7 +307,96 @@ export default function LabelPage() {
             </div>
           </motion.div>
         )}
+
+        {/* Pending invites list */}
+        {invites.length > 0 && (
+          <div style={{ marginTop: 40 }}>
+            <div style={{ ...mono(10), textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8A8786', marginBottom: 16 }}>
+              Invites
+            </div>
+            <div style={{ backgroundColor: '#111111', border: '1px solid #1A1A1A', borderRadius: 8, overflow: 'hidden' }}>
+              {invites.map((inv, i) => (
+                <div key={inv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: i < invites.length - 1 ? '1px solid #1A1A1A' : 'none' }}>
+                  <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#F5F5F0' }}>{inv.email}</span>
+                  <span style={{
+                    ...mono(9),
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    color: inv.status === 'accepted' ? '#22C55E' : '#F59E0B',
+                    backgroundColor: inv.status === 'accepted' ? '#22C55E1A' : '#F59E0B1A',
+                    border: `1px solid ${inv.status === 'accepted' ? '#22C55E33' : '#F59E0B33'}`,
+                    padding: '3px 8px',
+                    borderRadius: 4,
+                    display: 'inline-block',
+                  }}>
+                    {inv.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Invite modal */}
+      {showModal && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 24 }}
+        >
+          <div style={{ backgroundColor: '#111111', border: '1px solid #1A1A1A', borderRadius: 12, padding: 32, width: '100%', maxWidth: 440 }}>
+            <div style={{ ...mono(10), textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8A8786', marginBottom: 16 }}>
+              Invite a Manager
+            </div>
+            <h2 style={{ fontFamily: 'var(--font-bebas), "Bebas Neue", sans-serif', fontWeight: 400, fontSize: 32, color: '#F5F5F0', margin: '0 0 24px', letterSpacing: '0.02em' }}>
+              Add to your label.
+            </h2>
+
+            {inviteSuccess ? (
+              <div>
+                <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#22C55E', margin: '0 0 20px' }}>{inviteSuccess}</p>
+                <button
+                  onClick={() => { setInviteSuccess(''); setShowModal(false) }}
+                  style={{ width: '100%', background: '#1A1A1A', color: '#F5F5F0', fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 500, padding: '14px', borderRadius: 8, border: '1px solid #2A2A2A', cursor: 'pointer' }}
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <label style={{ ...mono(11), textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Manager email</label>
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={e => setInviteEmail(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSendInvite() }}
+                    placeholder="manager@example.com"
+                    autoFocus
+                    style={{ width: '100%', background: '#0A0A0A', border: '1px solid #2A2A2A', padding: '14px 16px', borderRadius: 8, fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#F5F5F0', outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                {inviteError && (
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#FF4444', margin: 0 }}>{inviteError}</p>
+                )}
+                <button
+                  onClick={handleSendInvite}
+                  disabled={inviting || !inviteEmail.trim()}
+                  style={{ width: '100%', background: '#FF4500', color: '#F5F5F0', fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, padding: '14px', borderRadius: 8, border: 'none', cursor: inviting || !inviteEmail.trim() ? 'default' : 'pointer', opacity: inviting || !inviteEmail.trim() ? 0.6 : 1 }}
+                >
+                  {inviting ? 'Sending…' : 'Send Invite'}
+                </button>
+                <button
+                  onClick={() => setShowModal(false)}
+                  style={{ width: '100%', background: 'none', color: '#8A8786', fontFamily: "'DM Sans', sans-serif", fontSize: 14, padding: '8px', border: 'none', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

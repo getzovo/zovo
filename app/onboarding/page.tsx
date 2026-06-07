@@ -482,15 +482,18 @@ function OnboardingFlow() {
   const [accountType, setAccountType] = useState<AccountType>('artist');
   const [completedPlan, setCompletedPlan] = useState<'free' | 'artist' | 'pro' | null>(null);
   const [initialLabelName, setInitialLabelName] = useState('');
+  const [inviteToken, setInviteToken] = useState('');
 
   // Honour ?step= from Stripe redirect; ?type= pre-selects account type and skips Step 0
   useEffect(() => {
     const s = Number(searchParams.get('step'));
     const t = searchParams.get('type') as AccountType | null;
     const l = searchParams.get('label') ?? '';
+    const inv = searchParams.get('invite') ?? '';
     if (t && ['artist', 'manager', 'label'].includes(t)) {
       setAccountType(t);
       if (t === 'label' && l) setInitialLabelName(l);
+      if (inv) setInviteToken(inv);
       if (!s || s < 1 || s > 6) setStep(2);
     }
     if (s >= 1 && s <= 6) setStep(s);
@@ -585,7 +588,19 @@ function OnboardingFlow() {
         </div>
 
         {step === 1 && <Step0 onSelect={handleAccountType} />}
-        {step === 2 && <Step1 onNext={() => accountType === 'label' ? setStep(4) : next()} accountType={accountType} initialName={initialLabelName} />}
+        {step === 2 && <Step1
+          accountType={accountType}
+          initialName={initialLabelName}
+          onNext={async () => {
+            if (accountType === 'label') { setStep(4); return; }
+            if (accountType === 'manager' && inviteToken) {
+              await fetch(`/api/label/invite/${inviteToken}`, { method: 'POST' });
+              window.location.href = '/dashboard';
+              return;
+            }
+            next();
+          }}
+        />}
         {step === 3 && accountType !== 'label' && <Step2 onNext={next} onSkip={next} />}
         {step === 4 && <Step3 onFree={handleFree} onPaid={handlePaid} accountType={accountType} />}
         {step === 6 && (
