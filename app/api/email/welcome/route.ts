@@ -3,13 +3,11 @@ import { Resend } from 'resend'
 
 export async function POST(req: Request) {
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const { email, firstName } = await req.json()
+  const { email } = await req.json()
 
   if (!email) {
     return NextResponse.json({ error: 'email required' }, { status: 400 })
   }
-
-  const greeting = firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : null
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -37,7 +35,7 @@ export async function POST(req: Request) {
           <tr>
             <td style="padding-bottom:24px;">
               <h1 style="margin:0;font-size:42px;font-weight:800;color:#F5F5F0;line-height:1.1;letter-spacing:-0.01em;">
-                ${greeting ? `${greeting},<br />` : ''}Welcome to Zovo.
+                Welcome to Zovo.
               </h1>
             </td>
           </tr>

@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase';
 
 type AccountType = 'artist' | 'manager' | 'label'
 
 const TYPE_COPY: Record<AccountType, { headline: string; sub: string }> = {
-  artist:  { headline: 'CREATE YOUR ARTIST ACCOUNT.', sub: 'Start running your music business.'  },
+  artist:  { headline: 'CREATE YOUR ARTIST ACCOUNT.',  sub: 'Start running your music business.'  },
   manager: { headline: 'CREATE YOUR MANAGER ACCOUNT.', sub: 'Start managing your roster'          },
   label:   { headline: 'CREATE YOUR LABEL ACCOUNT.',   sub: 'Start running your label operation'  },
 }
@@ -38,10 +38,12 @@ const inputStyle: React.CSSProperties = {
 
 function SignupForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+
   const raw = searchParams.get('type');
   const accountType: AccountType | null = raw && ['artist', 'manager', 'label'].includes(raw) ? (raw as AccountType) : null;
   const inviteToken = searchParams.get('invite');
-  const copy = accountType ? TYPE_COPY[accountType] : { headline: 'CREATE YOUR ACCOUNT.', sub: 'Start managing your music career' };
+  const copy = accountType ? TYPE_COPY[accountType] : { headline: 'CREATE YOUR ACCOUNT.', sub: 'Start running your music business.' };
 
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
@@ -49,8 +51,6 @@ function SignupForm() {
   const [labelName, setLabelName] = useState('');
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState('');
-  const [success, setSuccess]     = useState(false);
-  useEffect(() => { setSuccess(false); }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -60,34 +60,25 @@ function SignupForm() {
     setLoading(true);
 
     const supabase = createClient();
-    const origin = window.location.origin;
-    const labelParam = accountType === 'label' ? `&label=${encodeURIComponent(labelName.trim())}` : '';
-    const inviteParam = inviteToken ? `&invite=${inviteToken}` : '';
-    const nextPath = accountType
-      ? `/onboarding?type=${accountType}${labelParam}${inviteParam}`
-      : '/onboarding';
-    // emailRedirectTo must go through /auth/callback so exchangeCodeForSession() runs.
-    // Supabase appends ?code= to this URL; the callback exchanges it and redirects to `next`.
-    const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
-
-    const { error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirectTo },
-    });
+    const { error: authError } = await supabase.auth.signUp({ email, password });
 
     if (authError) {
       setError(authError.message);
       setLoading(false);
-    } else {
-      const firstName = email.split('@')[0].split('.')[0].split('_')[0];
-      fetch('/api/email/welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, firstName }),
-      }).catch(() => {});
-      setSuccess(true);
+      return;
     }
+
+    fetch('/api/email/welcome', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }).catch(() => {});
+
+    const params = new URLSearchParams({ email });
+    if (accountType) params.set('type', accountType);
+    if (inviteToken) params.set('invite', inviteToken);
+    if (accountType === 'label' && labelName.trim()) params.set('label', labelName.trim());
+    router.push(`/verify?${params.toString()}`);
   }
 
   return (
@@ -106,38 +97,32 @@ function SignupForm() {
           {copy.sub}
         </p>
 
-        {success ? (
-          <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: '#F5F5F0', textAlign: 'center', padding: '20px 0' }}>
-            Check your email to confirm your account.
-          </p>
-        ) : (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {accountType === 'label' && (
-              <div>
-                <label style={labelStyle}>Label Name</label>
-                <input type="text" value={labelName} onChange={e => setLabelName(e.target.value)} required placeholder="Your label name" autoComplete="organization" style={inputStyle} />
-              </div>
-            )}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {accountType === 'label' && (
             <div>
-              <label style={labelStyle}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" style={inputStyle} />
+              <label style={labelStyle}>Label Name</label>
+              <input type="text" value={labelName} onChange={e => setLabelName(e.target.value)} required placeholder="Your label name" autoComplete="organization" style={inputStyle} />
             </div>
-            <div>
-              <label style={labelStyle}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>Confirm Password</label>
-              <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required minLength={8} autoComplete="new-password" style={inputStyle} />
-            </div>
+          )}
+          <div>
+            <label style={labelStyle}>Email</label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required autoComplete="email" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Password</label>
+            <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Confirm Password</label>
+            <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required minLength={8} autoComplete="new-password" style={inputStyle} />
+          </div>
 
-            {error && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#FF4444', margin: 0 }}>{error}</p>}
+          {error && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#FF4444', margin: 0 }}>{error}</p>}
 
-            <button type="submit" disabled={loading} style={{ width: '100%', background: '#FF4500', color: '#F5F5F0', fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, padding: '16px', borderRadius: 8, border: 'none', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}>
-              {loading ? 'Creating account…' : 'Create account'}
-            </button>
-          </form>
-        )}
+          <button type="submit" disabled={loading} style={{ width: '100%', background: '#FF4500', color: '#F5F5F0', fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 600, padding: '16px', borderRadius: 8, border: 'none', cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+            {loading ? 'Creating account…' : 'Create account'}
+          </button>
+        </form>
 
         <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#8A8786', textAlign: 'center', marginTop: 24 }}>
           Already have an account?{' '}
