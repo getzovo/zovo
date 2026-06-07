@@ -278,7 +278,7 @@ export default function Home() {
           <div style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
             <p style={{ fontFamily: DMM, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#444', marginBottom: 14 }}>POWERED BY AI</p>
             <h2 style={{ fontFamily: BB, fontSize: 'clamp(48px, 8vw, 110px)', color: '#F5F5F0', lineHeight: 0.92, margin: '0 0 8px', letterSpacing: '0.02em' }}>ZOVO DOESN&apos;T<br />JUST SHOW YOU DATA.</h2>
-            <p style={{ fontFamily: DMM, fontSize: 'clamp(32px, 5vw, 72px)', color: '#8A8786', margin: '0 0 32px', lineHeight: 0.95, letterSpacing: '0.02em' }}>IT TELLS YOU WHAT TO DO WITH IT.</p>
+            <p style={{ fontFamily: DM, fontSize: 15, color: '#8A8786', margin: '0 0 32px' }}>IT TELLS YOU WHAT TO DO WITH IT.</p>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               {AI_CARDS.map(({ compare, action, zovo }) => (
                 <div key={compare} style={{ flex: 1, minWidth: 240, background: '#111111', border: '1px solid #1A1A1A', borderRadius: 10, padding: '20px 22px' }}>
