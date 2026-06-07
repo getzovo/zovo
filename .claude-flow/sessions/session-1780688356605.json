@@ -1,0 +1,14 @@
+{
+  "id": "session-1780688356605",
+  "startedAt": "2026-06-05T19:39:16.605Z",
+  "cwd": "/Users/robertcole/getzovo",
+  "context": {},
+  "metrics": {
+    "edits": 96,
+    "commands": 0,
+    "tasks": 0,
+    "errors": 0
+  },
+  "endedAt": "2026-06-05T23:28:05.180Z",
+  "duration": 13728580
+}
