@@ -220,27 +220,39 @@ const STEP1_COPY: Record<AccountType, { fieldLabel: string; placeholder: string;
   label:   { fieldLabel: 'Label Name',  placeholder: 'Your label name',  buttonText: 'Set my label name' },
 }
 
+const ROSTER_SIZES = ['1–5 artists', '6–15 artists', '16–30 artists', '31–50 artists', '50+ artists']
+
 function Step1({ onNext, accountType, initialName = '' }: { onNext: (data: { artistName: string; genre: string }) => void; accountType: AccountType; initialName?: string }) {
   const [artistName, setArtistName] = useState(initialName);
   const [genre, setGenre] = useState('');
+  const [rosterSize, setRosterSize] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const isLabel = accountType === 'label';
+
   async function handleContinue() {
-    if (!artistName.trim() || !genre) { setError('Please fill in all fields.'); return; }
+    if (!artistName.trim()) { setError('Please fill in all fields.'); return; }
+    if (isLabel && !rosterSize) { setError('Please fill in all fields.'); return; }
+    if (!isLabel && !genre) { setError('Please fill in all fields.'); return; }
     setLoading(true); setError('');
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
 
-    const profileUpdate: Record<string, unknown> = { artist_name: artistName.trim(), genre };
-    if (accountType === 'label') profileUpdate.account_type = 'label';
+    const profileUpdate: Record<string, unknown> = { artist_name: artistName.trim() };
+    if (isLabel) {
+      profileUpdate.account_type = 'label';
+      profileUpdate.roster_size = rosterSize;
+    } else {
+      profileUpdate.genre = genre;
+    }
 
     const { error: dbError } = await supabase
       .from('profiles').update(profileUpdate).eq('id', user.id);
     if (dbError) { setError(dbError.message); setLoading(false); return; }
 
-    if (accountType === 'label') {
+    if (isLabel) {
       const { data: label, error: labelError } = await supabase
         .from('labels')
         .insert({ name: artistName.trim(), owner_user_id: user.id })
@@ -263,14 +275,25 @@ function Step1({ onNext, accountType, initialName = '' }: { onNext: (data: { art
         <input type="text" value={artistName} onChange={e => setArtistName(e.target.value)}
           placeholder={STEP1_COPY[accountType].placeholder} style={fieldInput} autoFocus />
       </div>
-      <div>
-        <label style={monoLabel}>Primary Genre</label>
-        <select value={genre} onChange={e => setGenre(e.target.value)}
-          style={{ ...fieldInput, appearance: 'none', backgroundImage: 'none' }}>
-          <option value="">Select a genre</option>
-          {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
-        </select>
-      </div>
+      {isLabel ? (
+        <div>
+          <label style={monoLabel}>Roster Size</label>
+          <select value={rosterSize} onChange={e => setRosterSize(e.target.value)}
+            style={{ ...fieldInput, appearance: 'none', backgroundImage: 'none' }}>
+            <option value="">Select roster size</option>
+            {ROSTER_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </div>
+      ) : (
+        <div>
+          <label style={monoLabel}>Primary Genre</label>
+          <select value={genre} onChange={e => setGenre(e.target.value)}
+            style={{ ...fieldInput, appearance: 'none', backgroundImage: 'none' }}>
+            <option value="">Select a genre</option>
+            {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+          </select>
+        </div>
+      )}
       {error && <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#FF4444', margin: 0 }}>{error}</p>}
       <button onClick={handleContinue} disabled={loading}
         style={{ ...btnPrimary, opacity: loading ? 0.7 : 1, cursor: loading ? 'default' : 'pointer' }}>
@@ -496,6 +519,17 @@ function OnboardingFlow() {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    // Stripe bypass: skip checkout for label plans when Stripe is not live
+    if (process.env.NEXT_PUBLIC_STRIPE_LIVE !== 'true' && accountType === 'label') {
+      await supabase.from('profiles').upsert(
+        { id: user.id, tier: 'label', onboarding_complete: true, account_type: 'label' },
+        { onConflict: 'id' },
+      );
+      window.location.href = '/label';
+      return;
+    }
+
     const res = await fetch('/api/stripe/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
