@@ -13,6 +13,7 @@ function VerifyForm() {
   const router = useRouter();
 
   const email  = searchParams.get('email')  ?? '';
+  const userId = searchParams.get('userId') ?? '';
   const type   = searchParams.get('type')   ?? '';
   const invite = searchParams.get('invite') ?? '';
   const label  = searchParams.get('label')  ?? '';
@@ -48,14 +49,25 @@ function VerifyForm() {
   }
 
   async function handleVerify() {
-    const token = digits.join('');
-    if (token.length < 6) { setError('Please enter the full 6-digit code.'); return; }
+    const code = digits.join('');
+    if (code.length < 6) { setError('Please enter the full 6-digit code.'); return; }
     setLoading(true);
     setError('');
 
+    const res = await fetch('/api/auth/verify-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, type: 'signup' }),
+    });
+    const json = await res.json();
+    if (!res.ok) { setError(json.error ?? 'Invalid or expired code'); setLoading(false); return; }
+
     const supabase = createClient();
-    const { error: verifyError } = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
-    if (verifyError) { setError(verifyError.message); setLoading(false); return; }
+    const { error: sessionError } = await supabase.auth.verifyOtp({
+      token_hash: json.token_hash,
+      type: 'magiclink',
+    });
+    if (sessionError) { setError(sessionError.message); setLoading(false); return; }
 
     const p = new URLSearchParams();
     if (type)   p.set('type', type);
@@ -66,8 +78,11 @@ function VerifyForm() {
 
   async function handleResend() {
     setResent(false);
-    const supabase = createClient();
-    await supabase.auth.resend({ type: 'signup', email });
+    await fetch('/api/auth/send-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, userId, type: 'signup' }),
+    });
     setResent(true);
     setTimeout(() => setResent(false), 4000);
   }

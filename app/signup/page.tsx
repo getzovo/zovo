@@ -60,7 +60,7 @@ function SignupForm() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signUp({ email, password });
+    const { data: authData, error: authError } = await supabase.auth.signUp({ email, password });
 
     if (authError) {
       setError(authError.message);
@@ -68,13 +68,21 @@ function SignupForm() {
       return;
     }
 
+    const userId = authData.user?.id ?? '';
+
     fetch('/api/email/welcome', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     }).catch(() => {});
 
-    const params = new URLSearchParams({ email });
+    await fetch('/api/auth/send-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, userId, type: 'signup' }),
+    });
+
+    const params = new URLSearchParams({ email, userId });
     if (accountType) params.set('type', accountType);
     if (inviteToken) params.set('invite', inviteToken);
     if (accountType === 'label' && labelName.trim()) params.set('label', labelName.trim());
