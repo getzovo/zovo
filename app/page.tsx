@@ -278,13 +278,13 @@ export default function Home() {
           <div style={{ maxWidth: 1100, margin: '0 auto', width: '100%' }}>
             <p style={{ fontFamily: DMM, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#444', marginBottom: 14 }}>POWERED BY AI</p>
             <h2 style={{ fontFamily: BB, fontSize: 'clamp(48px, 8vw, 110px)', color: '#F5F5F0', lineHeight: 0.92, margin: '0 0 8px', letterSpacing: '0.02em' }}>ZOVO DOESN&apos;T<br />JUST SHOW YOU DATA.</h2>
-            <p style={{ fontFamily: DM, fontSize: 18, color: '#8A8786', margin: '0 0 32px', fontWeight: 500, letterSpacing: '0.02em' }}>IT TELLS YOU WHAT TO DO WITH IT.</p>
+            <p style={{ fontFamily: BB, fontSize: 'clamp(32px, 5vw, 72px)', color: '#8A8786', margin: '0 0 32px', lineHeight: 0.95, letterSpacing: '0.02em' }}>IT TELLS YOU WHAT TO DO WITH IT.</p>
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               {AI_CARDS.map(({ compare, action, zovo }) => (
                 <div key={compare} style={{ flex: 1, minWidth: 240, background: '#111111', border: '1px solid #1A1A1A', borderRadius: 10, padding: '20px 22px' }}>
                   <p style={{ fontFamily: DM, fontSize: 15, color: '#8A8786', lineHeight: 1.7, margin: 0 }}>
-                    <span style={{ fontFamily: DMM, fontSize: 11, letterSpacing: '0.06em' }}>{compare}</span>{' '}{action}{' '}
-                    <span style={{ color: '#FF4500', fontWeight: 600 }}>{zovo}</span>
+                    <span style={{ fontFamily: DM, fontSize: 15, fontWeight: 600, color: '#F5F5F0' }}>{compare}</span>{' '}{action}{' '}
+                    <span style={{ fontFamily: DM, fontSize: 15, color: '#FF4500', fontWeight: 600 }}>{zovo}</span>
                   </p>
                 </div>
               ))}
@@ -298,25 +298,25 @@ export default function Home() {
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
           <p style={{ fontFamily: DMM, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8A8786', marginBottom: 16 }}>PRICING</p>
           <h2 style={{ fontFamily: BB, fontSize: 'clamp(56px, 10vw, 120px)', color: '#0A0A0A', lineHeight: 0.9, margin: '0 0 56px', letterSpacing: '0.02em' }}>BUILT FOR<br />EVERY LEVEL.</h2>
-          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 10 }}>
             {PRICING.map(({ name, price, desc, feats, type, popular }) => (
-              <div key={name} style={{ minWidth: 196, flex: 1, background: '#FFFFFF', border: popular ? '1px solid #FF4500' : '1px solid #E8E8E4', borderRadius: 12, padding: '28px 20px', display: 'flex', flexDirection: 'column', gap: 12, position: 'relative' }}>
+              <div key={name} style={{ background: '#FFFFFF', border: popular ? '1px solid #FF4500' : '1px solid #E8E8E4', borderRadius: 12, padding: '20px 14px', display: 'flex', flexDirection: 'column', gap: 10, position: 'relative' }}>
                 {popular && (
-                  <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', background: '#FF4500', color: '#F5F5F0', fontFamily: DMM, fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '4px 10px', borderRadius: 4, whiteSpace: 'nowrap' }}>Most popular</div>
+                  <div style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', background: '#FF4500', color: '#F5F5F0', fontFamily: DMM, fontSize: 8, letterSpacing: '0.12em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>Most popular</div>
                 )}
                 <div>
-                  <div style={{ fontFamily: BB, fontSize: 22, letterSpacing: '0.04em', color: '#0A0A0A', marginBottom: 4 }}>{name}</div>
-                  <div style={{ fontFamily: DM, fontSize: 26, fontWeight: 600, color: '#0A0A0A', marginBottom: 4 }}>{price}</div>
-                  <div style={{ fontFamily: DM, fontSize: 13, color: '#8A8786' }}>{desc}</div>
+                  <div style={{ fontFamily: BB, fontSize: 20, letterSpacing: '0.04em', color: '#0A0A0A', marginBottom: 2 }}>{name}</div>
+                  <div style={{ fontFamily: BB, fontSize: 28, letterSpacing: '0.02em', color: '#0A0A0A', lineHeight: 1, marginBottom: 4 }}>{price}</div>
+                  <div style={{ fontFamily: DM, fontSize: 12, color: '#8A8786', lineHeight: 1.4 }}>{desc}</div>
                 </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
                   {feats.map(f => (
-                    <li key={f} style={{ fontFamily: DM, fontSize: 13, color: '#555', paddingLeft: 14, position: 'relative' }}>
+                    <li key={f} style={{ fontFamily: DM, fontSize: 12, color: '#555', paddingLeft: 12, position: 'relative' }}>
                       <span style={{ position: 'absolute', left: 0, color: '#FF4500' }}>·</span>{f}
                     </li>
                   ))}
                 </ul>
-                <Link href={`/signup?type=${type}`} style={{ display: 'block', textAlign: 'center', fontFamily: DMM, fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', backgroundColor: popular ? '#FF4500' : 'rgba(0,0,0,0.04)', color: popular ? '#F5F5F0' : '#555', border: popular ? 'none' : '1px solid #E0E0E0', padding: '12px 16px', borderRadius: 8, textDecoration: 'none' }}>
+                <Link href={`/signup?type=${type}`} style={{ display: 'block', textAlign: 'center', fontFamily: DMM, fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', backgroundColor: popular ? '#FF4500' : 'rgba(0,0,0,0.04)', color: popular ? '#F5F5F0' : '#555', border: popular ? 'none' : '1px solid #E0E0E0', padding: '10px 8px', borderRadius: 8, textDecoration: 'none' }}>
                   GET STARTED
                 </Link>
               </div>
@@ -332,7 +332,7 @@ export default function Home() {
             READY TO RUN YOUR<br />MUSIC LIKE A BUSINESS?
           </h2>
           <p style={{ fontFamily: DM, fontSize: 18, color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, margin: '0 0 40px' }}>
-            Join independent artists, managers, and labels already building smarter on Zovo.
+            Be one of the first independent artists, managers, and labels to run their music on Zovo.
           </p>
           <Link href="/signup" style={{ ...ctaLink, backgroundColor: '#0A0A0A', fontSize: 13, padding: '16px 48px', display: 'inline-block', marginBottom: 24 }}>GET STARTED FREE</Link>
           <p style={{ fontFamily: DMM, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)', margin: 0 }}>
