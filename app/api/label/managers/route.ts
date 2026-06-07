@@ -41,7 +41,7 @@ export async function GET() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  const [{ data: managers }, { data: labelRow }] = await Promise.all([
+  const [{ data: profileManagers }, { data: labelRow }] = await Promise.all([
     adminClient
       .from('profiles')
       .select('id, artist_name, created_at')
@@ -49,7 +49,7 @@ export async function GET() {
       .eq('account_type', 'manager'),
     adminClient
       .from('labels')
-      .select('name')
+      .select('id, name')
       .eq('owner_user_id', user.id)
       .order('created_at', { ascending: true })
       .limit(1)
@@ -58,7 +58,29 @@ export async function GET() {
 
   const labelName = labelRow?.name ?? labelProfile?.artist_name ?? 'Your Label'
 
-  if (!managers || managers.length === 0) {
+  // Also pull managers from label_managers (accepted) — handles new users
+  // whose profiles row didn't exist at invite-accept time
+  let labelManagerIds: string[] = []
+  if (labelRow?.id) {
+    const { data: links } = await adminClient
+      .from('label_managers')
+      .select('manager_user_id')
+      .eq('label_id', labelRow.id)
+      .not('accepted_at', 'is', null)
+    labelManagerIds = (links ?? []).map(l => l.manager_user_id)
+  }
+
+  const allManagerIdSet = new Set([
+    ...(profileManagers ?? []).map(m => m.id),
+    ...labelManagerIds,
+  ])
+  const allManagerIds = Array.from(allManagerIdSet)
+
+  const managers = allManagerIds.length > 0
+    ? ((await adminClient.from('profiles').select('id, artist_name, created_at').in('id', allManagerIds)).data ?? [])
+    : []
+
+  if (managers.length === 0) {
     return NextResponse.json({
       managers: [],
       label_name: labelName,
@@ -167,7 +189,7 @@ export async function GET() {
     managers: managerCards,
     label_name: labelName,
     stats: {
-      total_managers: managers.length,
+      total_managers: allManagerIds.length,
       total_artists: artistIds.length,
       avg_health: avgHealth,
     },

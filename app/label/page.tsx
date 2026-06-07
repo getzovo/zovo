@@ -33,6 +33,16 @@ interface InviteRow {
   created_at: string
 }
 
+interface ActivityItem {
+  pitch_id: string
+  artist_name: string
+  curator_name: string
+  playlist_name: string
+  manager_name: string
+  status: string
+  created_at: string
+}
+
 const STATUS_STYLE: Record<string, { color: string; bg: string; border: string }> = {
   ACTIVE:   { color: '#22C55E', bg: '#22C55E1A', border: '#22C55E33' },
   IDLE:     { color: '#F59E0B', bg: '#F59E0B1A', border: '#F59E0B33' },
@@ -54,6 +64,25 @@ function daysAgo(dateStr: string): string {
   return `${Math.floor(d / 30)}mo ago`
 }
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60_000)
+  const hrs = Math.floor(diff / 3_600_000)
+  const days = Math.floor(diff / 86_400_000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  if (hrs < 24) return `${hrs}h ago`
+  if (days < 7) return `${days}d ago`
+  if (days < 30) return `${Math.floor(days / 7)}w ago`
+  return `${Math.floor(days / 30)}mo ago`
+}
+
+const PITCH_STATUS_STYLE: Record<string, { color: string; bg: string; border: string }> = {
+  sent:    { color: '#22C55E', bg: '#22C55E1A', border: '#22C55E33' },
+  draft:   { color: '#F59E0B', bg: '#F59E0B1A', border: '#F59E0B33' },
+  opened:  { color: '#3B82F6', bg: '#3B82F61A', border: '#3B82F633' },
+}
+
 const COL_HEADERS = ['MANAGER', 'ARTISTS', 'PITCHES (30D)', 'AVG HEALTH', 'LAST ACTIVE', 'STATUS']
 
 const thStyle: React.CSSProperties = {
@@ -71,6 +100,8 @@ export default function LabelPage() {
   const [data, setData] = useState<LabelData | null>(null)
   const [loading, setLoading] = useState(true)
   const [invites, setInvites] = useState<InviteRow[]>([])
+  const [activity, setActivity] = useState<ActivityItem[]>([])
+  const [activityLoading, setActivityLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting, setInviting] = useState(false)
@@ -92,7 +123,15 @@ export default function LabelPage() {
       .catch(() => setLoading(false))
   }, [])
 
-  useEffect(() => { load(); loadInvites() }, [load, loadInvites])
+  const loadActivity = useCallback(() => {
+    setActivityLoading(true)
+    fetch('/api/label/activity')
+      .then(r => r.json())
+      .then((d: { activity: ActivityItem[] }) => { setActivity(d.activity ?? []); setActivityLoading(false) })
+      .catch(() => setActivityLoading(false))
+  }, [])
+
+  useEffect(() => { load(); loadInvites(); loadActivity() }, [load, loadInvites, loadActivity])
 
   async function handleSendInvite() {
     if (!inviteEmail.trim()) return
@@ -189,16 +228,12 @@ export default function LabelPage() {
         </div>
 
         {/* Manager table */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ ...mono(10), textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8A8786', marginBottom: 16 }}>
-            Manager Performance
-          </div>
+        <div style={{ ...mono(10), textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8A8786', marginBottom: 16 }}>
+          Manager Performance
         </div>
 
         {loading ? (
-          <div style={{ ...mono(11), textTransform: 'uppercase', color: '#5A5A58', padding: '40px 0' }}>
-            LOADING...
-          </div>
+          <div style={{ ...mono(11), textTransform: 'uppercase', color: '#5A5A58', padding: '40px 0' }}>LOADING...</div>
         ) : managers.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
@@ -307,6 +342,68 @@ export default function LabelPage() {
             </div>
           </motion.div>
         )}
+
+        {/* Pitch Activity Feed */}
+        <div style={{ marginTop: 48 }}>
+          <div style={{ ...mono(10), textTransform: 'uppercase', letterSpacing: '0.12em', color: '#8A8786', marginBottom: 16 }}>
+            Pitch Activity
+          </div>
+          {activityLoading ? (
+            <div style={{ ...mono(11), textTransform: 'uppercase', color: '#5A5A58', padding: '20px 0' }}>LOADING...</div>
+          ) : activity.length === 0 ? (
+            <div style={{ backgroundColor: '#111111', border: '1px solid #1A1A1A', borderRadius: 8, padding: '40px', textAlign: 'center' }}>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#8A8786' }}>
+                No pitch activity yet. Invite managers to start tracking pitches.
+              </div>
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              style={{ backgroundColor: '#111111', border: '1px solid #1A1A1A', borderRadius: 8, overflow: 'hidden' }}
+            >
+              {activity.map((item, i) => {
+                const ps = PITCH_STATUS_STYLE[item.status] ?? PITCH_STATUS_STYLE.draft
+                return (
+                  <div
+                    key={item.pitch_id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '14px 16px',
+                      borderBottom: i < activity.length - 1 ? '1px solid #1A1A1A' : 'none',
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: '#F5F5F0', fontWeight: 500, marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.artist_name}
+                      </div>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#8A8786', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.curator_name}{item.playlist_name ? ` · ${item.playlist_name}` : ''}
+                      </div>
+                      <div style={{ ...mono(10), color: '#5A5A58', marginTop: 3 }}>
+                        {item.manager_name}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                      <span style={{
+                        ...mono(9), textTransform: 'uppercase', letterSpacing: '0.1em',
+                        color: ps.color, backgroundColor: ps.bg, border: `1px solid ${ps.border}`,
+                        padding: '3px 8px', borderRadius: 4, display: 'inline-block',
+                      }}>
+                        {item.status.toUpperCase()}
+                      </span>
+                      <span style={{ ...mono(10), color: '#5A5A58', whiteSpace: 'nowrap' }}>
+                        {timeAgo(item.created_at)}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </motion.div>
+          )}
+        </div>
 
         {/* Pending invites list */}
         {invites.length > 0 && (

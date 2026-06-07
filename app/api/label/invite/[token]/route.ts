@@ -61,15 +61,19 @@ export async function POST(_: Request, { params }: { params: { token: string } }
     .single()
   if (!label) return NextResponse.json({ error: 'Label not found' }, { status: 404 })
 
+  const now = new Date().toISOString()
+
   await Promise.all([
     admin
       .from('profiles')
-      .update({ label_id: label.owner_user_id, account_type: 'manager' })
-      .eq('id', user.id),
+      .upsert({ id: user.id, label_id: label.owner_user_id, account_type: 'manager' }, { onConflict: 'id' }),
     admin
       .from('label_invites')
-      .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+      .update({ status: 'accepted', accepted_at: now })
       .eq('id', invite.id),
+    admin
+      .from('label_managers')
+      .insert({ label_id: invite.label_id, manager_user_id: user.id, accepted_at: now }),
   ])
 
   return NextResponse.json({ ok: true })
