@@ -107,12 +107,14 @@ export async function POST(req: Request) {
 </html>`
 
   const resend = new Resend(process.env.RESEND_API_KEY)
-  const { error: emailError } = await resend.emails.send({
-    from: 'notifications@getzovo.app',
+  console.log('[send-verification] from:', process.env.RESEND_FROM_EMAIL)
+  const { data: emailData, error: emailError } = await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL as string,
     to: email,
     subject: 'Your Zovo verification code',
     html,
   })
+  console.log('[send-verification] Resend response:', JSON.stringify({ emailData, emailError }))
 
   if (emailError) {
     console.error('[send-verification] Resend error:', JSON.stringify(emailError))
