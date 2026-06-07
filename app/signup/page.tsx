@@ -60,9 +60,12 @@ function SignupForm() {
     const supabase = createClient();
     const origin = window.location.origin;
     const labelParam = accountType === 'label' ? `&label=${encodeURIComponent(labelName.trim())}` : '';
-    const redirectTo = accountType
-      ? `${origin}/onboarding?type=${accountType}${labelParam}`
-      : `${origin}/onboarding`;
+    const nextPath = accountType
+      ? `/onboarding?type=${accountType}${labelParam}`
+      : '/onboarding';
+    // emailRedirectTo must go through /auth/callback so exchangeCodeForSession() runs.
+    // Supabase appends ?code= to this URL; the callback exchanges it and redirects to `next`.
+    const redirectTo = `${origin}/auth/callback?next=${encodeURIComponent(nextPath)}`;
 
     const { error: authError } = await supabase.auth.signUp({
       email,

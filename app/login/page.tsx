@@ -34,16 +34,37 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resentOk, setResentOk] = useState(false);
+
+  async function handleResend() {
+    if (!email || resending) return;
+    setResending(true);
+    setResentOk(false);
+    const supabase = createClient();
+    await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    setResending(false);
+    setResentOk(true);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setUnconfirmed(false);
+    setResentOk(false);
 
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (authError) {
+      const isUnconfirmed = authError.message.toLowerCase().includes('email not confirmed')
+      setUnconfirmed(isUnconfirmed);
       setError(authError.message);
       setLoading(false);
     } else {
@@ -131,14 +152,43 @@ export default function Login() {
           </div>
 
           {error && (
-            <p style={{
-              fontFamily: "'DM Sans', sans-serif",
-              fontSize: 14,
-              color: '#FF4444',
-              margin: 0,
-            }}>
-              {error}
-            </p>
+            <div>
+              <p style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontSize: 14,
+                color: '#FF4444',
+                margin: '0 0 8px',
+              }}>
+                {error}
+              </p>
+              {unconfirmed && email && (
+                resentOk ? (
+                  <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: '#22C55E', margin: 0 }}>
+                    Confirmation email sent — check your inbox.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={resending}
+                    style={{
+                      fontFamily: "'DM Sans', sans-serif",
+                      fontSize: 13,
+                      color: '#F5F5F0',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: resending ? 'default' : 'pointer',
+                      textDecoration: 'underline',
+                      textUnderlineOffset: 3,
+                      opacity: resending ? 0.6 : 1,
+                    }}
+                  >
+                    {resending ? 'Sending…' : 'Resend confirmation email'}
+                  </button>
+                )
+              )}
+            </div>
           )}
 
           <button
